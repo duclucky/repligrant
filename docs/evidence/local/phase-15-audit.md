@@ -54,6 +54,9 @@ errors/warnings. The same-origin `/genlayer-rpc` path is used by the deployed ap
 
 Browser write proof is recorded in `docs/evidence/local/phase-9-browser-write.md`.
 Browser payment proof is recorded in `docs/evidence/local/phase-9-browser-payment.md`.
+After the production redeploy, the browser reloaded `/activity` and restored
+the selected OKX account; canonical Activity showed `C-2 WITHDRAWN` and
+`CLAIMABLE CREDIT 0.00 GEN`.
 
 ## Public and network evidence
 
