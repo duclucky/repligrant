@@ -31,7 +31,7 @@ The active deployment is recorded in [`deployment.json`](deployment.json):
 - Deployment transaction: `0x92e7e8041e9f31f4a3bfa9ada21b9a84c90f6254f273f68e3700f1752bbb9886`
 - Lifecycle evidence: [`docs/evidence/studionet/phase-8-lifecycle.md`](docs/evidence/studionet/phase-8-lifecycle.md)
 - Production frontend: [repligrant.vercel.app](https://repligrant.vercel.app)
-- Latest successful CI: [run 34229631939](https://github.com/duclucky/repligrant/actions/runs/34229631939)
+- CI workflow: [RepliGrant check](https://github.com/duclucky/repligrant/actions/workflows/check.yml)
 
 Run the demo scripts only with an authorized ignored `.env`:
 
