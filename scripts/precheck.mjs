@@ -47,5 +47,5 @@ console.log("Project repligrant -Category projects");
 console.log(blockers.length ? `${blockers.length} BLOCKER` : "NO BLOCKER");
 for (const check of checks) console.log(check);
 for (const blocker of blockers) console.log(`BLOCKER: ${blocker}`);
-console.log("WARN: browser wallet writes remain user-signature dependent; wrappers, controls, finality handling, canonical reload, and SDK boundary tests are present.");
+console.log("WARN: browser submit write is verified; review/close/withdraw browser signatures remain user-approval dependent; wrappers, finality handling, canonical reload, and SDK boundary tests are present.");
 process.exitCode = blockers.length ? 1 : 0;

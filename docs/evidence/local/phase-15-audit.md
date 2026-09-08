@@ -48,8 +48,11 @@ Commands: `curl.exe -I https://repligrant.vercel.app` and
 Observed: HTTP `200 OK`; the response contains
 `<title>RepliGrant | Fund evidence that holds up</title>` and `<div id="root"></div>`.
 Chrome verification of `/rounds/R-1` read canonical `OPEN R-1`, submission
-`PMC13367721 ... QUALIFIED`, `1.00 GEN` remaining purse, and no browser console
+`PMC13367721 ... QUALIFIED`, then after the finalized browser write also read
+`PMC13267231 ... SUBMITTED`, `Remaining slots 0`, and no browser console
 errors/warnings. The same-origin `/genlayer-rpc` path is used by the deployed app.
+
+Browser write proof is recorded in `docs/evidence/local/phase-9-browser-write.md`.
 
 ## Public and network evidence
 

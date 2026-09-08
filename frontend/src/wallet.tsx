@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { studionet } from "genlayer-js/chains";
 import { Check, WalletCards, X } from "lucide-react";
 
 export interface Eip1193Provider {
@@ -65,8 +66,8 @@ declare global {
   }
 }
 
-const STUDIONET = {
-  chainId: "0xF1EF",
+export const STUDIONET = {
+  chainId: `0x${studionet.id.toString(16)}`,
   chainName: "GenLayer Studionet",
   rpcUrls: ["https://studio.genlayer.com/api"],
   nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },

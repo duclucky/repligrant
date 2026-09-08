@@ -568,11 +568,11 @@ No important claim may have a blank cell.
 
 ### Projects, if selected
 
-- [x] Real frontend wallet-write path — selected EVM wallet, `createClient` account binding, and real genlayer-js write wrappers; user signature remains an honest action-time dependency.
+- [x] Real frontend wallet-write path — selected EVM wallet, `createClient` account binding, and a finalized browser `submit_replication` on Studionet; later browser signatures remain an honest action-time dependency.
 - [x] Full lifecycle/failure/retry — submit/review/retry/close/withdraw controls, phases, and live retry-to-qualified evidence.
 - [x] Canonical reads — all product views read contract methods; production route shows live `R-1` state.
 - [x] Meaningful user outcome — finalized `QUALIFIED` opened 1.00 GEN, then withdrawal reached 0.00 GEN.
-- [x] Browser evidence — wallet picker, same-origin IC proxy, production app, and empty console verified in Chrome.
+- [x] Browser evidence — wallet picker, corrected chain `61999`, same-origin IC proxy, production app, finalized browser submit, and empty console verified in Chrome.
 - [x] Every claimed browser lifecycle action has frontend wrapper/control/test/finality/canonical reload.
 - [x] Primary UI contains only user-relevant data/actions; system/reviewer
       details are contextual or hidden.
