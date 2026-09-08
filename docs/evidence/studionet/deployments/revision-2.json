@@ -1,0 +1,20 @@
+{
+  "active": false,
+  "network": "studionet",
+  "chain_id": "61999",
+  "contract": "RepliGrant",
+  "contract_address": "0x60a33510e82674600cC406C14D518e0395E88607",
+  "deployment_tx": "0xee51d3a2cce562506abe0b5570958e2b6edafab402a017f060944d1cb0e9ebe1",
+  "deployer": "0xC495ef51618D03267A1f227aFe5b27B38c748272",
+  "status": "FINALIZED",
+  "result_name": "MAJORITY_AGREE",
+  "execution_result": "SUCCESS",
+  "source_sha256": "e6250ec590f0ad802bd68c1bd31aabacd6b86a9f6e73ac4f338f624655edde59",
+  "depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
+  "rpc": "https://studio.genlayer.com/api",
+  "explorer": "https://genlayer-explorer.vercel.app",
+  "superseded_by": "0x5dc18F7Ab1Ffd5CDA4D08663E86cBF0E0Efc1c48",
+  "superseded_reason": "Added bounded source-binding diagnostics before the active lifecycle revision.",
+  "recovery_evidence": "No value was sent to this revision after replacement; its test rounds remain isolated."
+}
+

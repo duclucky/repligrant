@@ -1,0 +1,20 @@
+{
+  "active": false,
+  "network": "studionet",
+  "chain_id": "61999",
+  "contract": "RepliGrant",
+  "contract_address": "0xF6Df75d131b97783f49F73C6B9199d70267776AF",
+  "deployment_tx": "0xf3247079f3cb0c407b82ce03437f7ccd757f35193ec883c919b52feb8247e333",
+  "deployer": "0xC495ef51618D03267A1f227aFe5b27B38c748272",
+  "status": "FINALIZED",
+  "result_name": "MAJORITY_AGREE",
+  "execution_result": "SUCCESS",
+  "source_sha256": "3db75f6689dec20ec1da3a8cd217e2fa7b06aa8ad7f435c77c051edd8a43b5e9",
+  "depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
+  "rpc": "https://studio.genlayer.com/api",
+  "explorer": "https://genlayer-explorer.vercel.app",
+  "superseded_by": "0x60a33510e82674600cC406C14D518e0395E88607",
+  "superseded_reason": "Web response compatibility revision; no further value was sent after replacement.",
+  "recovery_evidence": "Original rounds remain readable on the superseded address and have explicit close/refund paths."
+}
+

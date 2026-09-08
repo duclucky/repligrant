@@ -1,0 +1,18 @@
+import { readFileSync } from "node:fs";
+import { createAccount, createClient } from "../frontend/node_modules/genlayer-js/dist/index.js";
+import { studionet } from "../frontend/node_modules/genlayer-js/dist/chains/index.js";
+import { TransactionStatus } from "../frontend/node_modules/genlayer-js/dist/types/index.js";
+const text = readFileSync(new URL("../.env", import.meta.url), "utf8");
+const env = Object.fromEntries(text.split(/\r?\n/).filter((line) => line.includes("=") && !line.trim().startsWith("#")).map((line) => { const i = line.indexOf("="); return [line.slice(0, i).trim(), line.slice(i + 1).trim()]; }));
+const deployment = JSON.parse(readFileSync(new URL("../deployment.json", import.meta.url), "utf8"));
+const account = createAccount(env.STUDIONET_PRIVATE_KEY);
+const client = createClient({ chain: studionet, account, endpoint: "https://studio.genlayer.com/api" });
+const address = deployment.contract_address;
+const before = JSON.parse(String(await client.readContract({ address, functionName: "get_account_credits", args: [account.address] })));
+const credit = before.find((item) => item.status === "CLAIMABLE");
+if (!credit) throw new Error("No claimable credit found");
+const hash = await client.writeContract({ address, functionName: "withdraw_credit", args: [credit.id], value: 0n });
+const receipt = await client.waitForTransactionReceipt({ hash, status: TransactionStatus.FINALIZED, interval: 3000, retries: 50 });
+const after = JSON.parse(String(await client.readContract({ address, functionName: "get_account_credits", args: [account.address] })));
+const creditAfter = JSON.parse(String(await client.readContract({ address, functionName: "get_credit", args: [credit.id] })));
+console.log(JSON.stringify({ creditId: credit.id, amountGen: credit.amount_gen, hash, status: receipt.statusName ?? String(receipt.status), result: receipt.resultName ?? String(receipt.result), creditAfter, claimableBefore: before.filter((item) => item.status === "CLAIMABLE").length, claimableAfter: after.filter((item) => item.status === "CLAIMABLE").length }, null, 2));

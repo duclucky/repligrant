@@ -1,0 +1,16 @@
+{
+  "active": true,
+  "network": "studionet",
+  "chain_id": "61999",
+  "contract": "RepliGrant",
+  "contract_address": "0x5dc18F7Ab1Ffd5CDA4D08663E86cBF0E0Efc1c48",
+  "deployment_tx": "0x92e7e8041e9f31f4a3bfa9ada21b9a84c90f6254f273f68e3700f1752bbb9886",
+  "deployer": "0xC495ef51618D03267A1f227aFe5b27B38c748272",
+  "status": "FINALIZED",
+  "result_name": "MAJORITY_AGREE",
+  "execution_result": "SUCCESS",
+  "source_sha256": "5a69e45752a1ebecd48414d3c20ce2963eeda25ada2a05c32c100a64becd562a",
+  "depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
+  "rpc": "https://studio.genlayer.com/api",
+  "explorer": "https://genlayer-explorer.vercel.app"
+}
