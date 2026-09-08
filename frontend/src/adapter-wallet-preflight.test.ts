@@ -34,11 +34,13 @@ describe("RepliGrant adapter wallet-account boundary", () => {
     const clientFactory: typeof createClient = (config) => {
       const client = createClient({ ...config, chain: offlineChain });
       client.waitForTransactionReceipt = async (_args: Parameters<typeof client.waitForTransactionReceipt>[0]) => ({ resultName: "SUCCESS", txExecutionResultName: "FINISHED_WITH_RETURN" }) as Awaited<ReturnType<typeof client.waitForTransactionReceipt>>;
+      client.readContract = (async () => JSON.stringify([{ id: "R-1", title: "Bounded claim" }])) as typeof client.readContract;
       return client;
     };
     const adapter = createContractAdapter({ contractAddress: contract, endpoint: "https://offline-repligrant.invalid", clientFactory, sessionGetter: () => ({ account: sender, provider }) });
     const phases: string[] = [];
-    await adapter.openRound({ title: "Bounded claim", claim: "A claim", originalPmcid: "PMC8500892", originalDoi: "10.3758/s13423-021-01928-7", scopeIds: ["outcome"], deadline: 1_900_000_000 }, (state) => phases.push(state.phase));
+    const roundId = await adapter.openRound({ title: "Bounded claim", claim: "A claim", originalPmcid: "PMC8500892", originalDoi: "10.3758/s13423-021-01928-7", scopeIds: ["outcome"], deadline: 1_900_000_000 }, (state) => phases.push(state.phase));
+    expect(roundId).toBe("R-1");
     const send = walletRequests.find((request) => request.method === "eth_sendTransaction");
     const transaction = Array.isArray(send?.params) ? send.params[0] as Record<string, string> : {};
     expect(transaction.from.toLowerCase()).toBe(sender);

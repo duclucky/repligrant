@@ -104,7 +104,14 @@ export function createContractAdapter(options: AdapterOptions = {}): ContractAda
     async getRound(roundId: string): Promise<RoundDetail | null> { const raw = await createReadClient(options).readContract({ address: requireContractAddress(contractAddress), functionName: "get_round", args: [roundId] }); return toRound(parseJson(raw)); },
     async getActivity(account: string): Promise<ActivityItem[]> { if (!isAddress(account)) throw new Error("The connected account address is invalid."); const raw = await createReadClient(options).readContract({ address: requireContractAddress(contractAddress), functionName: "get_activity", args: [account] }); return list(parseJson(raw)).map((entry) => { const item = asRecord(entry); return { id: text(item.id), kind: text(item.kind, "ROUND") as ActivityItem["kind"], title: text(item.title), status: text(item.status), roundId: text(item.round_id) }; }); },
     async getCredit(account: string): Promise<CreditBalance> { if (!isAddress(account)) throw new Error("The connected account address is invalid."); const raw = await createReadClient(options).readContract({ address: requireContractAddress(contractAddress), functionName: "get_account_credits", args: [account] }); const entries = list(parseJson(raw)).map(asRecord); const claimable = entries.filter((item) => text(item.status) === "CLAIMABLE"); const cents = claimable.reduce((total, item) => total + amountToCents(text(item.amount_gen, "0.00")), 0n); return { owner: account, claimableGen: centsToGen(cents), claimableIds: claimable.map((item) => text(item.id)).filter(Boolean) }; },
-    async openRound(input: OpenRoundInput, onPhase): Promise<string> { return writeTransaction("open_round", [input.title, input.claim, input.originalPmcid, input.originalDoi, input.scopeIds.join(","), input.deadline], 2n * 10n ** 18n, onPhase, options); },
+    async openRound(input: OpenRoundInput, onPhase): Promise<string> {
+      await writeTransaction("open_round", [input.title, input.claim, input.originalPmcid, input.originalDoi, input.scopeIds.join(","), input.deadline], 2n * 10n ** 18n, onPhase, options);
+      const created = list(parseJson(await createReadClient(options).readContract({ address: requireContractAddress(contractAddress), functionName: "list_rounds" })));
+      const match = created.reverse().find((value) => text(asRecord(value).title) === input.title);
+      const id = match ? text(asRecord(match).id) : "";
+      if (!id) throw new Error("Round finalized but its canonical id was not readable.");
+      return id;
+    },
     async submitReplication(input: SubmitReplicationInput, onPhase): Promise<string> { return writeTransaction("submit_replication", [input.roundId, input.pmcid, input.doi], 0n, onPhase, options); },
     async reviewSubmission(submissionId: string, onPhase): Promise<void> { await writeTransaction("review_submission", [submissionId], 0n, onPhase, options); },
     async closeRound(roundId: string, onPhase): Promise<void> { await writeTransaction("close_round", [roundId], 0n, onPhase, options); },

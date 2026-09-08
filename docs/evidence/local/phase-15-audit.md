@@ -53,6 +53,7 @@ Chrome verification of `/rounds/R-1` read canonical `OPEN R-1`, submission
 errors/warnings. The same-origin `/genlayer-rpc` path is used by the deployed app.
 
 Browser write proof is recorded in `docs/evidence/local/phase-9-browser-write.md`.
+Browser payment proof is recorded in `docs/evidence/local/phase-9-browser-payment.md`.
 
 ## Public and network evidence
 

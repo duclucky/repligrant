@@ -33,6 +33,23 @@ export interface DetectedWallet extends Eip6963Detail {
   source: "EIP-6963" | "INJECTED";
 }
 
+export const WALLET_STORAGE_KEY = "repligrant.selectedWallet";
+
+export interface PersistedWalletIdentity {
+  uuid: string;
+  name: string;
+  rdns?: string;
+}
+
+export function walletIdentity(wallet: DetectedWallet): PersistedWalletIdentity {
+  return { uuid: wallet.info.uuid, name: wallet.info.name, rdns: wallet.info.rdns };
+}
+
+export function matchesWalletIdentity(wallet: DetectedWallet, saved: PersistedWalletIdentity): boolean {
+  return wallet.info.uuid === saved.uuid
+    || (Boolean(saved.rdns) && wallet.info.rdns === saved.rdns);
+}
+
 let activeWalletSession: { account: string; provider: Eip1193Provider } | null = null;
 
 export function getActiveWalletSession() {
@@ -75,6 +92,26 @@ export const STUDIONET = {
 };
 
 const WalletContext = createContext<WalletContextValue | null>(null);
+
+function readPersistedWallet(): PersistedWalletIdentity | null {
+  try {
+    const raw = window.localStorage.getItem(WALLET_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedWalletIdentity>;
+    if (typeof parsed.uuid !== "string" || typeof parsed.name !== "string") return null;
+    return { uuid: parsed.uuid, name: parsed.name, rdns: typeof parsed.rdns === "string" ? parsed.rdns : undefined };
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedWallet(wallet: DetectedWallet): void {
+  try { window.localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(walletIdentity(wallet))); } catch { /* storage is optional */ }
+}
+
+function clearPersistedWallet(): void {
+  try { window.localStorage.removeItem(WALLET_STORAGE_KEY); } catch { /* storage is optional */ }
+}
 
 function isAddress(value: unknown): value is string {
   return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
@@ -137,6 +174,7 @@ export function WalletProvider({ children }: PropsWithChildren) {
   const [account, setAccount] = useState<string | null>(null);
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const restoreAttempted = useRef(false);
 
   useEffect(() => {
     const discovered = new Map<string, DetectedWallet>();
@@ -158,6 +196,30 @@ export function WalletProvider({ children }: PropsWithChildren) {
     window.dispatchEvent(new Event("eip6963:requestProvider"));
     return () => window.removeEventListener("eip6963:announceProvider", announce);
   }, []);
+
+  useEffect(() => {
+    if (restoreAttempted.current || wallets.length === 0) return;
+    const saved = readPersistedWallet();
+    if (!saved) {
+      restoreAttempted.current = true;
+      return;
+    }
+    const wallet = wallets.find((item) => matchesWalletIdentity(item, saved));
+    if (!wallet) return;
+    restoreAttempted.current = true;
+    void (async () => {
+      try {
+        const accounts = await wallet.provider.request({ method: "eth_accounts" });
+        if (!Array.isArray(accounts) || !isAddress(accounts[0])) return;
+        await ensureStudionet(wallet.provider);
+        setSelectedWallet(wallet);
+        setAccount(accounts[0]);
+        activeWalletSession = { account: accounts[0], provider: wallet.provider };
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Saved wallet could not be restored.");
+      }
+    })();
+  }, [wallets]);
 
   useEffect(() => {
     if (!selectedWallet?.provider.on) return;
@@ -186,6 +248,7 @@ export function WalletProvider({ children }: PropsWithChildren) {
       setSelectedWallet(wallet);
       setAccount(accounts[0]);
       activeWalletSession = { account: accounts[0], provider: wallet.provider };
+      writePersistedWallet(wallet);
       setPickerOpen(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Wallet connection was not completed.");
@@ -196,6 +259,7 @@ export function WalletProvider({ children }: PropsWithChildren) {
     setAccount(null);
     setSelectedWallet(null);
     activeWalletSession = null;
+    clearPersistedWallet();
     setError(null);
   }, []);
 
