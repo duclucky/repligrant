@@ -10,10 +10,24 @@ DIRECT_SDK_VERSION = "v0.2.16"
 
 
 def _install_windows_stdin_patch() -> None:
-    if os.name != "nt":
-        return
     from gltest.direct import loader
     from gltest.direct.vm import VMContext
+    if getattr(loader, "_repligrant_time_patch", False):
+        return
+
+    original_warp = VMContext.warp
+
+    def warp_with_datetime(self: VMContext, timestamp: str) -> None:
+        original_warp(self, timestamp)
+        import genlayer.gl as gl
+        if hasattr(gl, "message_raw") and gl.message_raw is not None:
+            gl.message_raw["datetime"] = timestamp
+
+    VMContext.warp = warp_with_datetime
+    loader._repligrant_time_patch = True
+
+    if os.name != "nt":
+        return
     if getattr(loader, "_repligrant_windows_stdin_patch", False):
         return
 
@@ -46,14 +60,6 @@ def _install_windows_stdin_patch() -> None:
         vm._repligrant_stdin_temp_path = path
 
     original_cleanup = VMContext._cleanup_after_deactivate
-    original_warp = VMContext.warp
-
-    def warp_with_datetime(self: VMContext, timestamp: str) -> None:
-        original_warp(self, timestamp)
-        import genlayer.gl as gl
-        if hasattr(gl, "message_raw") and gl.message_raw is not None:
-            gl.message_raw["datetime"] = timestamp
-
     def cleanup_after_deactivate(self: VMContext) -> None:
         try:
             original_cleanup(self)
@@ -69,7 +75,6 @@ def _install_windows_stdin_patch() -> None:
     loader._inject_message_to_fd0 = inject_message_to_fd0
     loader._repligrant_windows_stdin_patch = True
     VMContext._cleanup_after_deactivate = cleanup_after_deactivate
-    VMContext.warp = warp_with_datetime
 
 
 _install_windows_stdin_patch()
