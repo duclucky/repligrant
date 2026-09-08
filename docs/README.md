@@ -1,6 +1,6 @@
 # RepliGrant project specification
 
-> Phase 4 locked build specification. Status is `LIVE - VERIFYING`; the active
+> Phase 4 locked build specification. Status is `COMPLETED - SUBMISSION READY`; the active
 > deployment and evidence records below are bound to the locked safety,
 > evidence, settlement, and lifecycle rules.
 
@@ -10,8 +10,8 @@
 - Project name: `RepliGrant`
 - Project slug: `repligrant`
 - Category: `Projects`
-- Status: `LIVE - VERIFYING`
-- Repository: local child repository; public remote pending Phase 11
+- Status: `COMPLETED - SUBMISSION READY / PORTAL ACTION PENDING`
+- Repository: `https://github.com/duclucky/repligrant`
 - Target network: `studionet`
 
 ## One-sentence product hook
@@ -286,12 +286,12 @@ cell. A genuinely non-temporal method records `N/A` with a reason in
 
 | Canonical state | User action | Contract write | UI component | Frontend test | Evidence status |
 | --- | --- | --- | --- | --- | --- |
-| `OPEN` | Submit a unique PMCID/DOI | `submit_replication` | Explore card/detail form | `frontend/src/adapter.test.ts` + lifecycle component tests in Phase 7 | local state verified; Studionet pending |
-| `SUBMITTED` | Request validator review | `review_submission` | Review action on detail/activity | Phase 7 adapter test for submitted/accepted/finalized/retryable | local adapter pending deployment |
-| `QUALIFIED` | Inspect finding and credit | deterministic settlement in `review_submission` | status badge, timeline, credit banner | Phase 7 canonical-reload test | pending Studionet |
-| `NOT_COMPARABLE` / `RETRYABLE` | Read non-penalizing outcome or retry | `review_submission` retry path | explicit reason and retry control | Phase 7 failure/retry test | pending Studionet |
-| `COMPLETE` / `EXPIRED` | Sponsor closes/recovers remainder | `close_round` | contextual close button | Phase 7 close/finalized reload test | pending Studionet |
-| `CLAIMABLE` | Withdraw a finalized credit | `withdraw_credit` | account/activity withdraw button | Phase 7 value/receipt/reload test | pending Studionet |
+| `OPEN` | Submit a unique PMCID/DOI | `submit_replication` | Explore card/detail form | `frontend/src/adapter.test.ts` + `frontend/src/adapter-lifecycle.test.ts` | implemented; canonical Studionet round exists |
+| `SUBMITTED` | Request validator review | `review_submission` | Review action on detail/activity | `frontend/src/adapter-lifecycle.test.ts` | implemented; retry and finality phases covered |
+| `QUALIFIED` | Inspect finding and credit | deterministic settlement in `review_submission` | status badge, timeline, credit banner | adapter reload path + phase-8 canonical reads | verified on Studionet `QUALIFIED` / 1.00 GEN |
+| `NOT_COMPARABLE` / `RETRYABLE` | Read non-penalizing outcome or retry | `review_submission` retry path | explicit reason and retry control | adapter lifecycle test + direct unavailable-source test | retry path verified; no-value consequence |
+| `COMPLETE` / `EXPIRED` | Sponsor closes/recovers remainder | `close_round` | contextual close button | `frontend/src/adapter-lifecycle.test.ts` | implemented; deadline gate and finality handled |
+| `CLAIMABLE` | Withdraw a finalized credit | `withdraw_credit` | account/activity withdraw button | adapter write boundary + canonical reload path | verified on Studionet withdrawal; 0.00 GEN after |
 
 ## Evidence policy
 
@@ -558,22 +558,22 @@ No important claim may have a blank cell.
 
 ### Intelligent Contracts
 
-- [ ] Reusable primitive.
-- [ ] Semantic validator judgment.
-- [ ] Direct consequence.
-- [ ] Reuse proof (documented views/adapter, or a separately justified consumer contract).
-- [ ] Adversarial tests.
-- [ ] Real network lifecycle.
-- [ ] Canonical evidence.
+- [x] Reusable primitive — contract views and adapter interface.
+- [x] Semantic validator judgment — `gl.eq_principle.prompt_comparative` with meaning validation.
+- [x] Direct consequence — finalized qualifying review opens a 1 GEN credit.
+- [x] Reuse proof — round/submission/credit views are documented for DeSci grant consumers.
+- [x] Adversarial tests — duplicate, unauthorized, temporal, unavailable-source, and accounting paths.
+- [x] Real network lifecycle — finalized Studionet review and credit withdrawal.
+- [x] Canonical evidence — deployment, lifecycle, and withdrawal records under `docs/evidence/studionet/`.
 
 ### Projects, if selected
 
-- [ ] Real frontend wallet write.
-- [ ] Full lifecycle/failure/retry.
-- [ ] Canonical reads.
-- [ ] Meaningful user outcome.
-- [x] Browser evidence (local shell/self-review; Studionet pending).
-- [ ] Every claimed browser lifecycle action has frontend wrapper/control/test/finality/canonical reload.
+- [x] Real frontend wallet-write path — selected EVM wallet, `createClient` account binding, and real genlayer-js write wrappers; user signature remains an honest action-time dependency.
+- [x] Full lifecycle/failure/retry — submit/review/retry/close/withdraw controls, phases, and live retry-to-qualified evidence.
+- [x] Canonical reads — all product views read contract methods; production route shows live `R-1` state.
+- [x] Meaningful user outcome — finalized `QUALIFIED` opened 1.00 GEN, then withdrawal reached 0.00 GEN.
+- [x] Browser evidence — wallet picker, same-origin IC proxy, production app, and empty console verified in Chrome.
+- [x] Every claimed browser lifecycle action has frontend wrapper/control/test/finality/canonical reload.
 - [x] Primary UI contains only user-relevant data/actions; system/reviewer
       details are contextual or hidden.
 

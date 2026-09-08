@@ -1,5 +1,7 @@
 # RepliGrant
 
+[![RepliGrant check](https://github.com/duclucky/repligrant/actions/workflows/check.yml/badge.svg)](https://github.com/duclucky/repligrant/actions/workflows/check.yml)
+
 RepliGrant is a GenLayer Projects prototype for funding bounded research replication evidence. A sponsor locks an original PMCID/DOI claim and scope with a 2 GEN purse. Contributors submit a second authoritative Europe PMC record. GenLayer validators compare the meaning of the two records; only a finalized, normalized result can create a 1 GEN contributor credit and update the canonical claim status.
 
 ## What is verifiable
@@ -28,6 +30,8 @@ The active deployment is recorded in [`deployment.json`](deployment.json):
 - Contract: `0x5dc18F7Ab1Ffd5CDA4D08663E86cBF0E0Efc1c48`
 - Deployment transaction: `0x92e7e8041e9f31f4a3bfa9ada21b9a84c90f6254f273f68e3700f1752bbb9886`
 - Lifecycle evidence: [`docs/evidence/studionet/phase-8-lifecycle.md`](docs/evidence/studionet/phase-8-lifecycle.md)
+- Production frontend: [repligrant.vercel.app](https://repligrant.vercel.app)
+- Latest successful CI: [run 34228316759](https://github.com/duclucky/repligrant/actions/runs/34228316759)
 
 Run the demo scripts only with an authorized ignored `.env`:
 
