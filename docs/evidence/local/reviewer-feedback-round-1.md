@@ -70,7 +70,7 @@ Contract: RepliGrant
 Methods: 13 (7 view, 6 write)
 17 passed
 Test Files 5 passed (5)
-Tests 10 passed (10)
+Tests 11 passed (11)
 vite build: 2304 modules transformed; built successfully
 CHECK_PASS: lint, direct tests, frontend typecheck/tests/build
 ```

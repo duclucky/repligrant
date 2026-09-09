@@ -1,5 +1,10 @@
 # Studionet lifecycle proof
 
+This lifecycle evidence is retained for the superseded contract revision
+`0x5dc18F7Ab1Ffd5CDA4D08663E86cBF0E0Efc1c48`. The active reviewer-feedback
+revision is recorded separately in `deployment.json` and has not been credited
+with this historical value flow.
+
 All values below are human-readable GEN. The SDK sends the required base-unit integer only at the transaction boundary.
 
 ## Deploy/open/submit/review

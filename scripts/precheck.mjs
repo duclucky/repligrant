@@ -54,5 +54,5 @@ console.log("Project repligrant -Category projects");
 console.log(blockers.length ? `${blockers.length} BLOCKER` : "NO BLOCKER");
 for (const check of checks) console.log(check);
 for (const blocker of blockers) console.log(`BLOCKER: ${blocker}`);
-console.log("WARN: browser submit plus 2 GEN open/close/refund/withdraw are verified; browser review signatures were attempted but the three finalized review calls returned GenVM ERROR and remain retryable; wrappers, finality handling, canonical reload, and SDK boundary tests are present.");
+console.log("WARN: prior browser submit/review/2 GEN lifecycle evidence belongs to the archived superseded revision; the active revision has read-only production proof and a user-denied 2 GEN create-round attempt, while wrappers, finality handling, canonical reload, and SDK boundary tests are present.");
 process.exitCode = blockers.length ? 1 : 0;
