@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { studionet } from "genlayer-js/chains";
-import { matchesWalletIdentity, shortenAddress, STUDIONET, walletIdentity, type DetectedWallet } from "./wallet";
+import { ensureStudionet, matchesWalletIdentity, shortenAddress, STUDIONET, walletIdentity, type DetectedWallet } from "./wallet";
 
 describe("wallet display", () => {
   it("shortens an address without changing the underlying value", () => {
@@ -11,6 +11,13 @@ describe("wallet display", () => {
   it("uses the genlayer-js Studionet chain id for wallet switching", () => {
     expect(Number.parseInt(STUDIONET.chainId, 16)).toBe(studionet.id);
     expect(studionet.id).toBe(61999);
+  });
+
+  it("requests a Studionet switch when a connected wallet is on another chain", async () => {
+    const requests: Array<{ method: string; params?: unknown[] | object }> = [];
+    const provider = { request: async (request: { method: string; params?: unknown[] | object }) => { requests.push(request); return null; } };
+    await ensureStudionet(provider);
+    expect(requests).toEqual([{ method: "wallet_switchEthereumChain", params: [{ chainId: STUDIONET.chainId }] }]);
   });
 
   it("persists a selected provider identity without persisting a private key", () => {

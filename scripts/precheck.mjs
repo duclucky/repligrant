@@ -45,7 +45,9 @@ if (existsSync(gitConfig) && /github\.com[/:]duclucky\/repligrant/.test(readFile
 else blockers.push("public GitHub remote is missing or unexpected");
 
 const readme = readFileSync(resolve(root, "README.md"), "utf8");
-if (/https:\/\/repligrant\.vercel\.app/.test(readme) && /0x5dc18F7Ab1Ffd5CDA4D08663E86cBF0E0Efc1c48/.test(readme)) checks.push("OK README has verified live app and active contract");
+let activeAddress = "";
+try { activeAddress = JSON.parse(readFileSync(deployment, "utf8")).contract_address ?? ""; } catch {}
+if (/https:\/\/repligrant\.vercel\.app/.test(readme) && activeAddress && readme.includes(activeAddress)) checks.push("OK README has verified live app and active contract");
 else blockers.push("README is missing verified live app or active contract");
 
 console.log("Project repligrant -Category projects");

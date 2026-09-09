@@ -25,6 +25,7 @@ describe("RepliGrant adapter wallet-account boundary", () => {
     const provider = {
       async request(request: { method: string; params?: unknown[] | object }) {
         walletRequests.push(request);
+        if (request.method === "wallet_switchEthereumChain") return null;
         if (request.method === "eth_chainId") return `0x${studionet.id.toString(16)}`;
         if (request.method === "eth_sendTransaction") return fixtureHash;
         throw new Error(`Unexpected wallet method ${request.method}`);
@@ -45,6 +46,7 @@ describe("RepliGrant adapter wallet-account boundary", () => {
     const transaction = Array.isArray(send?.params) ? send.params[0] as Record<string, string> : {};
     expect(transaction.from.toLowerCase()).toBe(sender);
     expect(BigInt(transaction.value)).toBe(2n * 10n ** 18n);
+    expect(walletRequests.some((request) => request.method === "wallet_switchEthereumChain")).toBe(true);
     expect(phases).toEqual(["AWAITING_SIGNATURE", "SUBMITTED", "ACCEPTED", "FINALIZED"]);
     expect(rpcMethods).toContain("eth_estimateGas");
     globalThis.fetch = originalFetch;

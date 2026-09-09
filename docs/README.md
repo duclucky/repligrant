@@ -575,15 +575,15 @@ No important claim may have a blank cell.
 - [x] Reuse proof — round/submission/credit views are documented for DeSci grant consumers.
 - [x] Adversarial tests — duplicate, unauthorized, temporal, unavailable-source, and accounting paths.
 - [x] Real network lifecycle — finalized Studionet review and credit withdrawal.
-- [x] Canonical evidence — deployment, lifecycle, and withdrawal records under `docs/evidence/studionet/`.
+- [x] Canonical evidence — active reviewer-feedback deployment plus archived lifecycle and withdrawal records under `docs/evidence/studionet/`.
 
 ### Projects, if selected
 
 - [x] Real frontend wallet-write path — selected EVM wallet, `createClient` account binding, and a finalized browser `submit_replication` on Studionet; later browser signatures remain an honest action-time dependency.
 - [x] Full lifecycle/failure/retry — submit/review/retry/close/withdraw controls, phases, and live retry-to-qualified evidence.
-- [x] Canonical reads — all product views read contract methods; production route shows live `R-1` state.
+- [x] Canonical reads — all product views read contract methods; current production route shows the new contract's live empty state.
 - [x] Meaningful user outcome — finalized `QUALIFIED` opened 1.00 GEN, then withdrawal reached 0.00 GEN.
-- [x] Browser evidence — wallet picker, corrected chain `61999`, same-origin IC proxy, production app, finalized browser submit, 2 GEN open/close/refund/withdraw, and empty console verified in Chrome.
+- [x] Browser evidence — wallet picker, per-write chain preflight to `61999`, same-origin IC proxy, production app, and empty console verified in Chrome; user-denied recovery funding remains explicitly unclaimed.
 - [x] Every claimed browser lifecycle action has frontend wrapper/control/test/finality/canonical reload.
 - [x] Primary UI contains only user-relevant data/actions; system/reviewer
       details are contextual or hidden.

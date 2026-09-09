@@ -27,9 +27,9 @@ npm run check
 The active deployment is recorded in [`deployment.json`](deployment.json):
 
 - Network: GenLayer Studionet (`chain_id=61999`)
-- Contract: `0x5dc18F7Ab1Ffd5CDA4D08663E86cBF0E0Efc1c48`
-- Explorer: [Studionet contract](https://explorer-studio.genlayer.com/address/0x5dc18F7Ab1Ffd5CDA4D08663E86cBF0E0Efc1c48)
-- Deployment transaction: `0x92e7e8041e9f31f4a3bfa9ada21b9a84c90f6254f273f68e3700f1752bbb9886`
+- Contract: `0xbc46481EB633363C45E4Cd3934d2e85cF0385E17`
+- Explorer: [Studionet contract](https://explorer-studio.genlayer.com/address/0xbc46481EB633363C45E4Cd3934d2e85cF0385E17)
+- Deployment transaction: [`0x6a695c...783e5`](https://explorer-studio.genlayer.com/tx/0x6a695ce99d080a9ce07eb4ebf5acbd5277f40b5b26617136c20f60fcfb5783e5)
 - Lifecycle evidence: [`docs/evidence/studionet/phase-8-lifecycle.md`](docs/evidence/studionet/phase-8-lifecycle.md)
 - Production frontend: [repligrant.vercel.app](https://repligrant.vercel.app)
 - CI workflow: [RepliGrant check](https://github.com/duclucky/repligrant/actions/workflows/check.yml)

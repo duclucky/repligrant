@@ -2,7 +2,7 @@ import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { TransactionStatus } from "genlayer-js/types";
 import { isAddress, type Address } from "viem";
-import { getActiveWalletSession, type Eip1193Provider } from "./wallet";
+import { ensureStudionet, getActiveWalletSession, type Eip1193Provider } from "./wallet";
 import type {
   ActivityItem, ClaimStatus, ContractAdapter, CreditBalance, Finding,
   OpenRoundInput, ReplicationSubmission, RoundDetail, RoundStatus, RoundSummary,
@@ -41,11 +41,6 @@ function createReadClient(options: AdapterOptions) {
   return (options.clientFactory ?? createClient)({ chain: studionet, endpoint: options.endpoint ?? IC_ENDPOINT });
 }
 
-function createWriteClient(options: AdapterOptions) {
-  const signer = requireSigner(options.sessionGetter ?? getActiveWalletSession);
-  return (options.clientFactory ?? createClient)({ chain: studionet, endpoint: options.endpoint ?? IC_ENDPOINT, account: signer.account, provider: signer.provider });
-}
-
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("The contract returned invalid JSON.");
   return value as Record<string, unknown>;
@@ -73,9 +68,13 @@ function isFailedReceipt(receipt: unknown): boolean {
 }
 
 async function writeTransaction(method: string, args: Array<string | number>, value: bigint, onPhase: (state: TransactionState) => void, options: AdapterOptions): Promise<string> {
-  const client = createWriteClient(options);
+  const signer = requireSigner(options.sessionGetter ?? getActiveWalletSession);
   const address = requireContractAddress(options.contractAddress ?? CONTRACT_ADDRESS);
   try {
+    // The account may have switched networks since connect/restore. Enforce the
+    // wallet-compatible Studionet chain immediately before every write.
+    await ensureStudionet(signer.provider);
+    const client = (options.clientFactory ?? createClient)({ chain: studionet, endpoint: options.endpoint ?? IC_ENDPOINT, account: signer.account, provider: signer.provider });
     onPhase({ phase: "AWAITING_SIGNATURE", message: "Confirm this transaction in your selected wallet." });
     const rawHash = await client.writeContract({ address, functionName: method, args, value });
     const hash = String(rawHash);

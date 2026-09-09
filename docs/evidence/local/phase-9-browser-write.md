@@ -28,3 +28,13 @@ After finality, the frontend canonical read showed `PMC13267231 ... SUBMITTED`
 and `Remaining slots 0`. This proves the browser submit write only; browser
 review/withdraw signatures remain user-approval-dependent and are not claimed
 as completed browser transactions.
+
+## Per-write chain preflight (reviewer-feedback repair)
+
+The wallet popup once displayed Ethereum when an already-connected account had
+been switched away from Studionet. The adapter now calls `ensureStudionet`
+immediately before every `writeContract`, not only during connect/restore. The
+frontend test suite includes a provider regression that observes
+`wallet_switchEthereumChain` with `0xf22f` (`61999`) before the write. The
+production deployment was rebuilt with this guard; no write is attempted while
+the provider remains on another chain.

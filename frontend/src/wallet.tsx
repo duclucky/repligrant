@@ -152,7 +152,7 @@ function fallbackWallets(): DetectedWallet[] {
   });
 }
 
-async function ensureStudionet(provider: Eip1193Provider): Promise<void> {
+export async function ensureStudionet(provider: Eip1193Provider): Promise<void> {
   try {
     await provider.request({
       method: "wallet_switchEthereumChain",

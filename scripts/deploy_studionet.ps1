@@ -37,8 +37,17 @@ if (Test-Path $deploymentPath) {
 
 $deployOutput = (& $genlayerCli deploy --contract $contractPath 2>&1 | Out-String)
 if ($LASTEXITCODE -ne 0) { throw "genlayer deploy failed." }
-$tx = [regex]::Match($deployOutput, "Deployment Transaction Hash:\s*\r?\n([^\s]+)").Groups[1].Value
-$address = [regex]::Match($deployOutput, "Contract Address:\s*'?(0x[a-fA-F0-9]{40})'?").Groups[1].Value
+$plainDeployOutput = [regex]::Replace($deployOutput, "$([char]27)\[[0-?]*[ -/]*[@-~]", "")
+$txPattern = '(?im)(?:Deployment\s+)?Transaction\s+Hash.{0,4}[:=]\s*["'']?(0x[a-fA-F0-9]{64})'
+$addressPattern = '(?im)Contract\s+Address.{0,4}[:=]\s*["'']?(0x[a-fA-F0-9]{40})'
+$tx = [regex]::Match(
+  $plainDeployOutput,
+  $txPattern
+).Groups[1].Value
+$address = [regex]::Match(
+  $plainDeployOutput,
+  $addressPattern
+).Groups[1].Value
 if (-not $tx -or -not $address) { throw "Deployment output did not contain a safe transaction/address pair." }
 
 $receiptOutput = (& $genlayerCli receipt $tx --status FINALIZED --retries 50 --interval 3000 2>&1 | Out-String)
@@ -66,7 +75,7 @@ $record = [ordered]@{
   source_commit = $sourceCommit
   depends = "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6"
   rpc = "https://studio.genlayer.com/api"
-  explorer = "https://genlayer-explorer.vercel.app"
+  explorer = "https://explorer-studio.genlayer.com"
 }
 $record | ConvertTo-Json | Set-Content -LiteralPath $deploymentPath -Encoding utf8
 Write-Output "DEPLOYMENT_FINALIZED: $address"

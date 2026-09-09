@@ -70,13 +70,34 @@ Contract: RepliGrant
 Methods: 13 (7 view, 6 write)
 17 passed
 Test Files 5 passed (5)
-Tests 9 passed (9)
+Tests 10 passed (10)
 vite build: 2304 modules transformed; built successfully
 CHECK_PASS: lint, direct tests, frontend typecheck/tests/build
 ```
 
-## Deployment boundary
+## Studionet deployment and browser chain repair
 
-The active Studionet address still contains the pre-feedback revision. The
-repair is locally verified only until a new contract revision is deployed,
-smoke-tested, bound in `deployment.json`, and the frontend is redeployed.
+The repaired revision was deployed once and finalized on Studionet. The
+deployment output was recovered from the Explorer after a CLI formatting parse
+miss; no duplicate deployment was sent:
+
+```text
+contract_address=0xbc46481EB633363C45E4Cd3934d2e85cF0385E17
+deployment_tx=0x6a695ce99d080a9ce07eb4ebf5acbd5277f40b5b26617136c20f60fcfb5783e5
+status=FINALIZED
+genvm_execution=SUCCESS
+consensus=Accepted
+schema=13 methods (7 view, 6 write), including expire_submission
+list_rounds=[]
+```
+
+Production was redeployed after correcting the Vercel contract-address
+environment variable. Browser `/rounds` now reads `No rounds yet` from the new
+contract through `/genlayer-rpc`, with no console errors/warnings.
+
+The wallet popup previously showed Ethereum because a connected account could
+change networks after connect/restore and the adapter did not re-check before a
+write. `ensureStudionet` now runs immediately before every write, using the
+current `genlayer-js/chains.studionet.id` (`61999`, `0xf22f`). A focused test
+proves the switch request is made; the user-denied 2 GEN attempt left
+`list_rounds=[]` and spent no value.
