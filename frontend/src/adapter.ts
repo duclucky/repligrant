@@ -114,6 +114,7 @@ export function createContractAdapter(options: AdapterOptions = {}): ContractAda
     },
     async submitReplication(input: SubmitReplicationInput, onPhase): Promise<string> { return writeTransaction("submit_replication", [input.roundId, input.pmcid, input.doi], 0n, onPhase, options); },
     async reviewSubmission(submissionId: string, onPhase): Promise<void> { await writeTransaction("review_submission", [submissionId], 0n, onPhase, options); },
+    async expireSubmission(submissionId: string, onPhase): Promise<void> { await writeTransaction("expire_submission", [submissionId], 0n, onPhase, options); },
     async closeRound(roundId: string, onPhase): Promise<void> { await writeTransaction("close_round", [roundId], 0n, onPhase, options); },
     async withdrawCredit(creditId: string, onPhase): Promise<void> { await writeTransaction("withdraw_credit", [creditId], 0n, onPhase, options); },
   };

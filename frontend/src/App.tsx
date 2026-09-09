@@ -33,11 +33,13 @@ import type {
   ActivityItem,
   ClaimStatus,
   CreditBalance,
+  ReplicationSubmission,
   RoundDetail,
   RoundSummary,
   TransactionPhase,
   TransactionState,
 } from "./types";
+import { canExpireSubmission, canReviewSubmission } from "./recovery";
 import { shortenAddress, useWallet } from "./wallet";
 
 const initialTransaction: TransactionState = { phase: "IDLE", message: "" };
@@ -183,11 +185,34 @@ function RoundDetailView({ round, onReload }: { round: RoundDetail; onReload: ()
   const [transaction, setTransaction] = useState(initialTransaction);
   const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const transactionBusy = ["AWAITING_SIGNATURE", "SUBMITTED", "ACCEPTED"].includes(transaction.phase);
   const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = new FormData(event.currentTarget); try { await contractAdapter.submitReplication({ roundId: round.id, pmcid: String(form.get("pmcid")), doi: String(form.get("doi")) }, setTransaction); navigate(`/rounds/${round.id}`); } catch (cause) { setTransaction({ phase: "FAILED", message: cause instanceof Error ? cause.message : "Submission failed." }); } };
   const review = async (submissionId: string) => { if (!wallet.account) { wallet.openPicker(); return; } try { await contractAdapter.reviewSubmission(submissionId, setTransaction); await onReload(); } catch (cause) { setTransaction({ phase: "FAILED", message: cause instanceof Error ? cause.message : "Review request failed." }); } };
+  const expire = async (submissionId: string) => { if (!wallet.account) { wallet.openPicker(); return; } try { await contractAdapter.expireSubmission(submissionId, setTransaction); await onReload(); } catch (cause) { setTransaction({ phase: "FAILED", message: cause instanceof Error ? cause.message : "Expiry recovery failed." }); } };
   const close = async () => { if (!wallet.account) { wallet.openPicker(); return; } try { await contractAdapter.closeRound(round.id, setTransaction); await onReload(); } catch (cause) { setTransaction({ phase: "FAILED", message: cause instanceof Error ? cause.message : "Close request failed." }); } };
-  const canClose = Boolean(wallet.account && wallet.account.toLowerCase() === round.sponsor.toLowerCase() && ["OPEN", "REVIEWING"].includes(round.status) && Math.floor(Date.now() / 1000) >= round.deadline);
-  return <section className="page-section"><Container><Link className="back-link" to="/rounds">← Back to rounds</Link><div className="detail-grid"><div><div className="detail-kicker"><StatusBadge status={round.status} /><span>{round.id}</span></div><h1>{round.title}</h1><p className="detail-claim">{round.claim}</p><div className="claim-callout"><ShieldCheck size={21} /><div><strong>Evidence scope is locked by the round</strong><span>{round.originalPmcid} · {round.originalDoi}</span></div></div><div className="detail-section"><h2>Replication evidence</h2>{round.submissions.length === 0 ? <EmptyState icon={<FlaskConical />} title="No submissions yet" text="Contributors can submit a public paper identifier for validator review." compact /> : <div className="submission-list">{round.submissions.map((submission) => <div className="submission-row" key={submission.id}><div><strong>{submission.pmcid}</strong><span>{submission.doi}</span></div><div className="submission-actions"><StatusBadge status={submission.status} />{["SUBMITTED", "RETRYABLE"].includes(submission.status) && <button className="text-button" onClick={() => void review(submission.id)}>{submission.status === "RETRYABLE" ? "Retry review" : "Request review"}</button>}</div></div>)}</div>}</div></div><aside className="detail-aside"><div className="aside-card"><div className="aside-label">Round purse</div><strong className="aside-value">{round.remainingPurseGen} <small>GEN</small></strong><div className="aside-divider" /><div className="aside-stat"><span>Remaining slots</span><strong>{round.remainingSlots}</strong></div><div className="aside-stat"><span>Deadline</span><strong>{formatDate(round.deadline)}</strong></div><button className="button button-primary full-width" onClick={() => setShowForm((value) => !value)}><FlaskConical size={17} /> Submit evidence</button>{canClose && <button className="button button-secondary full-width" onClick={() => void close()}>Close and refund remainder</button>}{showForm && <form className="inline-form" onSubmit={(event) => void submit(event)}><label>Replication PMCID<input name="pmcid" required placeholder="PMC…" /></label><label>DOI<input name="doi" required placeholder="10.…" /></label><button className="button button-dark full-width" type="submit">Submit for review <ArrowRight size={16} /></button></form>}{transaction.phase !== "IDLE" && <TransactionNotice state={transaction} />}</div><div className="aside-note"><CheckCircle2 size={17} /><span>Only finalized validator outcomes can change claim status or credit.</span></div></aside></div></Container></section>;
+  const hasPendingSubmission = round.submissions.some((submission) => ["SUBMITTED", "RETRYABLE"].includes(submission.status));
+  const canClose = Boolean(wallet.account && wallet.account.toLowerCase() === round.sponsor.toLowerCase() && ["OPEN", "REVIEWING"].includes(round.status) && nowSeconds >= round.deadline && !hasPendingSubmission);
+  const canSubmitEvidence = Boolean(wallet.account && round.status === "OPEN" && nowSeconds < round.deadline && round.remainingSlots > 0);
+  const submitLabel = nowSeconds >= round.deadline ? "Submission window closed" : round.remainingSlots <= 0 ? "No open slots" : "Submit evidence";
+
+  const submissionActions = (submission: ReplicationSubmission) => (
+    <div className="submission-actions">
+      <StatusBadge status={submission.status} />
+      {canReviewSubmission(round, submission, nowSeconds) && (
+        <button className="text-button" disabled={transactionBusy} onClick={() => void review(submission.id)}>
+          {submission.status === "RETRYABLE" ? "Retry review" : "Request review"}
+        </button>
+      )}
+      {canExpireSubmission(round, submission, wallet.account, nowSeconds) && (
+        <button className="text-button" disabled={transactionBusy} onClick={() => void expire(submission.id)}>
+          <Clock3 aria-hidden="true" size={15} /> Expire and release slot
+        </button>
+      )}
+    </div>
+  );
+
+  return <section className="page-section"><Container><Link className="back-link" to="/rounds">← Back to rounds</Link><div className="detail-grid"><div><div className="detail-kicker"><StatusBadge status={round.status} /><span>{round.id}</span></div><h1>{round.title}</h1><p className="detail-claim">{round.claim}</p><div className="claim-callout"><ShieldCheck size={21} /><div><strong>Evidence scope is locked by the round</strong><span>{round.originalPmcid} · {round.originalDoi}</span></div></div><div className="detail-section"><h2>Replication evidence</h2>{round.submissions.length === 0 ? <EmptyState icon={<FlaskConical />} title="No submissions yet" text="Contributors can submit a public paper identifier for validator review." compact /> : <div className="submission-list">{round.submissions.map((submission) => <div className="submission-row" key={submission.id}><div><strong>{submission.pmcid}</strong><span>{submission.doi}</span></div>{submissionActions(submission)}</div>)}</div>}</div></div><aside className="detail-aside"><div className="aside-card"><div className="aside-label">Round purse</div><strong className="aside-value">{round.remainingPurseGen} <small>GEN</small></strong><div className="aside-divider" /><div className="aside-stat"><span>Remaining slots</span><strong>{round.remainingSlots}</strong></div><div className="aside-stat"><span>Deadline</span><strong>{formatDate(round.deadline)}</strong></div><button className="button button-primary full-width" disabled={!canSubmitEvidence || transactionBusy} onClick={() => setShowForm((value) => !value)}><FlaskConical aria-hidden="true" size={17} /> {submitLabel}</button>{canClose && <button className="button button-secondary full-width" disabled={transactionBusy} onClick={() => void close()}>Close and refund remainder</button>}{showForm && canSubmitEvidence && <form className="inline-form" onSubmit={(event) => void submit(event)}><label>Replication PMCID<input name="pmcid" required placeholder="PMC…" /></label><label>DOI<input name="doi" required placeholder="10.…" /></label><button className="button button-dark full-width" type="submit" disabled={transactionBusy}>Submit for review <ArrowRight aria-hidden="true" size={16} /></button></form>}{transaction.phase !== "IDLE" && <TransactionNotice state={transaction} />}</div><div className="aside-note"><CheckCircle2 aria-hidden="true" size={17} /><span>Unresolved findings never create credit or change the claim. After the deadline, the sponsor or contributor can release the pending slot.</span></div></aside></div></Container></section>;
 }
 
 function NewRoundPage() {
@@ -238,7 +263,7 @@ function ConfigurationNotice({ message }: { message: string }) {
 
 function TransactionNotice({ state }: { state: TransactionState }) {
   const labels: Record<TransactionPhase, string> = { IDLE: "", AWAITING_SIGNATURE: "Awaiting wallet signature", SUBMITTED: "Submitted", ACCEPTED: "Accepted by the network", FINALIZED: "Finalized", FAILED: "Failed", RETRYABLE: "Retryable" };
-  return <div className={`transaction-notice ${state.phase.toLowerCase()}`}><span className="transaction-dot" /><div><strong>{labels[state.phase]}</strong><p>{state.message}</p>{state.hash && <code>{state.hash}</code>}</div></div>;
+  return <div className={`transaction-notice ${state.phase.toLowerCase()}`} role="status" aria-live="polite"><span className="transaction-dot" /><div><strong>{labels[state.phase]}</strong><p>{state.message}</p>{state.hash && <code>{state.hash}</code>}</div></div>;
 }
 
 function StatusBadge({ status }: { status: string }) {

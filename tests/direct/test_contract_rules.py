@@ -26,6 +26,7 @@ def test_structured_storage_and_public_interface_are_present():
         "open_round(",
         "submit_replication(",
         "review_submission(",
+        "expire_submission(",
         "close_round(",
         "withdraw_credit(",
         "get_round(",
@@ -40,7 +41,12 @@ def test_consensus_compares_meaning_and_blocks_unbound_source():
     assert "gl.vm.run_nondet" in CONTRACT_SOURCE
     assert "def validator_fn(leader_result)" in CONTRACT_SOURCE
     assert 'mine.get("decision") == leader_result.calldata.get("decision")' in CONTRACT_SOURCE
-    assert "_source_bound" in CONTRACT_SOURCE
+    assert "_parse_source_record" in CONTRACT_SOURCE
+    assert 'matched.get("abstractText", "")' in CONTRACT_SOURCE
+    assert 'matched.get("title", "")' in CONTRACT_SOURCE
+    assert 'matched.get("pubTypeList", {})' in CONTRACT_SOURCE
+    assert 'candidate.get("pmcid", "")' in CONTRACT_SOURCE
+    assert 'candidate.get("doi", "")' in CONTRACT_SOURCE
     assert "covered_scope_ids" in CONTRACT_SOURCE
     assert "DECISION_RETRYABLE" in CONTRACT_SOURCE
 
@@ -50,5 +56,6 @@ def test_value_safety_and_temporal_guards_are_explicit():
     assert "2 GEN" in CONTRACT_SOURCE
     assert "_now() >= int(round_record.deadline)" in CONTRACT_SOURCE
     assert "_now() < int(round_record.deadline)" in CONTRACT_SOURCE
+    assert "def expire_submission(" in CONTRACT_SOURCE
     assert "emit_transfer(value=u256(amount))" in CONTRACT_SOURCE
     assert 'credit.status = "WITHDRAWN"' in CONTRACT_SOURCE

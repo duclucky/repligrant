@@ -8,7 +8,7 @@ RepliGrant is a GenLayer Projects prototype for funding bounded research replica
 
 - One ASCII Intelligent Contract, `RepliGrant`, with structured per-round/per-submission/per-credit storage.
 - Europe PMC is the contract-built evidence authority; arbitrary URLs and actor-supplied payout labels are not accepted.
-- `SUBMITTED`, `QUALIFIED`, `NOT_COMPARABLE`, and `RETRYABLE` are explicit states. Invalid or unavailable evidence does not move value.
+- `SUBMITTED`, `QUALIFIED`, `NOT_COMPARABLE`, `RETRYABLE`, and post-deadline `EXPIRED` are explicit submission states. Invalid, unavailable, or unresolved evidence does not move value or claim state.
 - The frontend reads canonical views, uses an EVM wallet-selection modal, sends real GenLayer SDK transactions, shows submitted/accepted/finalized/failed states, and reloads after finality.
 
 ## Checks
@@ -20,7 +20,7 @@ npm install --prefix frontend
 npm run check
 ```
 
-`npm run check` runs `genvm-lint`, 11 direct-mode tests, frontend TypeScript, frontend tests, and the production build. The selected runner is pinned to `GENVM_VERSION=v0.2.16` for the verified contract/API family.
+`npm run check` runs `genvm-lint`, 17 direct-mode tests, frontend TypeScript, 9 frontend tests, and the production build. The selected runner is pinned to `GENVM_VERSION=v0.2.16` for the verified contract/API family.
 
 ## Studionet deployment
 

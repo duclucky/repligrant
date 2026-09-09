@@ -5,7 +5,8 @@ export type SubmissionStatus =
   | "REVIEWING"
   | "QUALIFIED"
   | "NOT_COMPARABLE"
-  | "RETRYABLE";
+  | "RETRYABLE"
+  | "EXPIRED";
 export type Finding = "CORROBORATES" | "CHALLENGES" | "UNRESOLVED";
 
 export interface RoundSummary {
@@ -93,6 +94,7 @@ export interface ContractAdapter {
   openRound(input: OpenRoundInput, onPhase: (state: TransactionState) => void): Promise<string>;
   submitReplication(input: SubmitReplicationInput, onPhase: (state: TransactionState) => void): Promise<string>;
   reviewSubmission(submissionId: string, onPhase: (state: TransactionState) => void): Promise<void>;
+  expireSubmission(submissionId: string, onPhase: (state: TransactionState) => void): Promise<void>;
   closeRound(roundId: string, onPhase: (state: TransactionState) => void): Promise<void>;
   withdrawCredit(creditId: string, onPhase: (state: TransactionState) => void): Promise<void>;
 }

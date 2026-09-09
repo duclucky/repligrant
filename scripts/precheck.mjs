@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,6 +28,10 @@ if (existsSync(deployment)) {
     if (record.network !== "studionet" || record.status !== "FINALIZED" || !record.contract_address) {
       blockers.push("active deployment evidence is not a finalized Studionet record");
     } else checks.push(`OK active contract ${record.contract_address}`);
+    const contractSource = readFileSync(resolve(root, "contracts/repligrant.py"));
+    const sourceHash = createHash("sha256").update(contractSource).digest("hex");
+    if (record.source_sha256 !== sourceHash) blockers.push("active Studionet deployment does not match the current contract source");
+    else checks.push("OK active deployment matches current contract source");
   } catch { blockers.push("active deployment evidence is not valid JSON"); }
 }
 

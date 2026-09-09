@@ -30,9 +30,9 @@
 - Actors/adversary: sponsor wants to retain unspent funds; contributor wants a selected paper to qualify for payment; public consumers need a neutral claim history.
 - Evidence class + authenticity mechanism: contract-constructed, bounded Europe PMC core-search records from locked PMCID/DOI pairs; fixed authoritative host/query, deterministic identifier/source/binding/freshness/anti-replay checks.
 - Consensus question: after objective checks pass, is comparability `SUFFICIENT` or `NOT_COMPARABLE`, and is the finding `CORROBORATES`, `CHALLENGES`, or `UNRESOLVED` for the exact locked scope IDs?
-- State machine: round `OPEN -> REVIEWING -> OPEN | COMPLETE | EXPIRED`; submission `SUBMITTED -> QUALIFIED | NOT_COMPARABLE | RETRYABLE`; append-only attempts/history, pull credits, explicit close/refund.
+- State machine: round `OPEN -> REVIEWING -> OPEN | COMPLETE | EXPIRED`; submission `SUBMITTED -> QUALIFIED | NOT_COMPARABLE | RETRYABLE | EXPIRED`; append-only history, reusable unbonded slots, pull credits, explicit expiry recovery and close/refund.
 - Direct consequence: a qualifying corroboration or challenge opens exactly 1 GEN contributor credit and deterministically derives `SUPPORTED`, `CHALLENGED`, or `MIXED`; invalid/unavailable evidence moves no GEN or claim state.
-- Reuse surface: open/fund round, submit indexed study, request review/retry, close expired round, withdraw credit, and read round/submission/claim/credit views.
+- Reuse surface: open/fund round, submit indexed study, request review/retry, expire unresolved submissions after deadline, close expired round, withdraw credit, and read round/submission/claim/credit views.
 
 ## Mandatory gate matrix
 
@@ -100,7 +100,8 @@ One FAIL means redesign/reject.
 | --- | --- | --- | --- | --- | --- |
 | Open funded round | Sponsor | Lock claim, original PMCID/DOI, scope IDs, deadline, and 2 GEN | round ID, sponsor, claim, original record, deadline, remaining purse | wallet prompt -> submitted -> accepted/decided -> finalized -> canonical `OPEN` | failed write keeps no app-side canonical state; retry after correction |
 | Submit replication | Contributor | Enter PMCID and DOI for a unique indexed paper | source identity, contributor, round status, existing IDs | submitted -> finalized `SUBMITTED` | duplicate/wrong binding rejects without value movement |
-| Review/retry submission | Any connected user; contributor is primary | Ask validators to compare authenticated source records | attempt, source stage, public user reason, canonical verdict | submitted -> accepted/decided -> finalized `QUALIFIED`, `NOT_COMPARABLE`, or `RETRYABLE` | source/parser/model failure remains non-penalizing and retryable before deadline |
+| Review/retry submission | Any connected user; contributor is primary | Ask validators to compare authenticated source records | attempt, source stage, public user reason, canonical verdict | submitted -> accepted/decided -> finalized `QUALIFIED`, `NOT_COMPARABLE`, or `RETRYABLE` | source/parser/model failure and unresolved findings remain non-penalizing and retryable before deadline |
+| Expire unresolved submission | Round sponsor or original contributor | Release a pending/retryable slot after its review window closes | submission status, deadline, remaining slots, unchanged purse/claim | finalized `EXPIRED` at or after deadline | duplicate/early/unrelated-caller attempts reject; sponsor can then close and recover the purse |
 | Close expired/completed round | Sponsor | Return every unallocated GEN unit to sponsor credit | deadline, outstanding review, remaining purse | finalized `COMPLETE` or `EXPIRED` | premature/duplicate close rejects with accounting unchanged |
 | Withdraw credit | Credit owner | Receive 1 GEN qualified credit or sponsor remainder | claimable GEN and last withdrawal status | submitted -> finalized -> zero claimable credit | failure leaves credit canonical and retryable; debit precedes transfer |
 | Browse canonical history | Everyone | Search rounds and open claim/submission details | round summaries, claim state, submission timeline, credits for connected account | loading/empty/live/error | retry read; no fixture presented as chain state |
@@ -144,6 +145,7 @@ frontend adapter.
 | `Fund a round` | `open_round(title, claim, original_pmcid, original_doi, scope_ids, deadline)` payable | Sponsor | Connected; valid future deadline | Claim fields + exactly 2 GEN | Accepted/decided then finalized; canonical reload | Failure shows field/transaction recovery; no local fake round |
 | `Submit a replication` | `submit_replication(round_id, pmcid, doi)` | Contributor | `OPEN`, before deadline, unique record | PMCID + DOI; 0 GEN | Finalized then submission reload | Wrong/duplicate ID remains unchanged and editable |
 | `Review evidence` | `review_submission(submission_id)` nondeterministic write | Connected user | `SUBMITTED` or retryable before deadline | Submission ID; 0 GEN | Accepted/decided/finalized then round reload | `RETRYABLE` explains source/model recovery and enables retry |
+| `Expire and release slot` | `expire_submission(submission_id)` | Stored sponsor or contributor | `SUBMITTED`/`RETRYABLE`, at or after deadline | Submission ID; 0 GEN | Finalized then round and history reload | Early, unrelated, or duplicate recovery leaves purse/claim/credits unchanged |
 | `Close round` | `close_round(round_id)` | Sponsor | `OPEN`/`REVIEWING` with no active slot and `now >= deadline` | Round ID; 0 GEN | Finalized then credit reload | Premature/duplicate close remains unchanged |
 | `Withdraw credit` | `withdraw_credit(credit_id)` | Credit owner | Claimable balance > 0 | Credit ID; 0 GEN call; transfer shown in GEN | Parent + child transfer finality and canonical reload | Failed transfer leaves canonical credit retryable |
 | `Disconnect` | Clear selected provider/account UI state | Connected user | Any | None | Immediate local UI action | Writes disabled until reconnect; no canonical state deletion |
@@ -159,6 +161,7 @@ frontend adapter.
 | `QUALIFIED/CHALLENGES` | Qualifying evidence challenges the claim | Contributor can withdraw 1 GEN after finalization |
 | `NOT_COMPARABLE` | This study does not test the locked claim closely enough | No payout; find a better-matched study |
 | `RETRYABLE` | Evidence could not be verified yet | No value or claim state changed; retry before deadline |
+| submission `EXPIRED` | Review window ended without a payable finding | No payout or claim change; its slot is available again |
 | `SUPPORTED` | Supported by qualifying replication evidence | Inspect the accepted evidence history |
 | `CHALLENGED` | Challenged by qualifying replication evidence | Inspect the accepted evidence history |
 | `MIXED` | Published replications disagree | Inspect both qualifying records |
@@ -205,6 +208,7 @@ Round: OPEN --deadline + close/sponsor--> EXPIRED
 Round: REVIEWING --review result--> OPEN | COMPLETE
 Submission: SUBMITTED --review--> QUALIFIED | NOT_COMPARABLE | RETRYABLE
 Submission: RETRYABLE --retry review--> QUALIFIED | NOT_COMPARABLE | RETRYABLE
+Submission: SUBMITTED | RETRYABLE --deadline + expire--> EXPIRED
 Credit: CLAIMABLE --owner withdraw--> WITHDRAWN
 ```
 
@@ -222,15 +226,17 @@ Credit: CLAIMABLE --owner withdraw--> WITHDRAWN
   already closed).
 - Entrypoint-local deadline/expiry guards: `submit_replication` requires
   `OPEN` and `now < deadline`; `review_submission` requires `SUBMITTED` or
-  `RETRYABLE` and `now < deadline`; `close_round` requires sponsor, no active
-  submission, and `now >= deadline` for expiry. `open_round` requires a future
-  deadline (`deadline > now`).
+  `RETRYABLE` and `now < deadline`; `expire_submission` requires the sponsor or
+  contributor, `SUBMITTED`/`RETRYABLE`, and `now >= deadline`; `close_round`
+  requires sponsor, no active submission, and `now >= deadline` for expiry.
+  `open_round` requires a future deadline (`deadline > now`).
 - Recovery/cancellation caller + state + time + actor-interest conditions:
   only the sponsor can close its round; it cannot close while either bounded
   slot is `SUBMITTED`/`RETRYABLE`; only a contributor/any connected reviewer
   can request review; only the credit owner can withdraw a `CLAIMABLE` credit.
   A retry never moves value and cannot reset a qualified or not-comparable
-  submission.
+  submission. Expiry releases only the matching active slot; it never changes
+  claim status, purse accounting, or credit state.
 
 ### Illegal transitions
 
@@ -268,11 +274,12 @@ Credit: CLAIMABLE --owner withdraw--> WITHDRAWN
 
 | Method | Caller | Allowed states | Forbidden states | Temporal/expiry gate | Idempotency | Value/accounting effect | Views affected | Negative tests |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `open_round(title, claim, pmcid, doi, scope_ids, deadline)` | Any caller; caller becomes sponsor | none; payable | malformed/empty fields, duplicate IDs, deadline not future, value != 2 GEN | `deadline > now`; equality rejected | New `R-n` only; no retry with same ID | Receives exactly 2 GEN; purse total/remaining = 2 GEN | round list, round view, sponsor activity | wrong value, duplicate source, stale deadline, malformed scopes, non-payable call | `tests/direct/test_round_guards.py` |
-| `submit_replication(round_id, pmcid, doi)` | Any connected contributor | `OPEN`, `now < deadline`, empty slot | closed/reviewing, late/equal deadline, duplicate PMCID/DOI, invalid source ID | `now < deadline`; equality rejected in this method | One submission ID per empty bounded slot | No value; records contributor | round view, submission view | unauthorized impossible caller, late/equal, duplicate, third slot, wrong round | `tests/direct/test_submission_guards.py` |
-| `review_submission(submission_id)` | Any connected non-zero account | `SUBMITTED` or `RETRYABLE`, `now < deadline` | terminal, wrong round state, late/equal, invalid source/auth fields | `now < deadline`; equality rejected | Attempt increments; terminal result cannot repeat | No value on all result/error paths | submission, round claim status, optional 1 GEN credit | source 404, missing PMCID/DOI binding, prompt injection, malformed verdict, disagreement | `tests/direct/test_review_guards.py` |
-| `close_round(round_id)` | Stored sponsor only | `OPEN`/`REVIEWING` after deadline, or deterministic complete path | non-sponsor, before/equal? equality is allowed here (`now >= deadline`), active slot, already closed | `now >= deadline`; stale phase does not bypass active-slot check | Terminal close rejects; no duplicate refund credit | Remaining purse becomes one sponsor refund credit; round purse becomes zero | round, credit, activity | wrong caller, early/equal/late, active submission, duplicate close, accounting | `tests/direct/test_close_refund.py` |
-| `withdraw_credit(credit_id)` | Stored credit owner | `CLAIMABLE` | wrong owner, zero amount, withdrawn, wrong credit | `N/A` — withdrawal is not deadline-bound; credit remains claimable until withdrawn | Status debited before child transfer; repeat rejected | 1 GEN contributor or remainder transfer; credit amount becomes zero | credit view, account credit view, transfer evidence | wrong owner, duplicate, zero, child transfer failure, balance mismatch | `tests/direct/test_withdrawal.py` |
+| `open_round(title, claim, pmcid, doi, scope_ids, deadline)` | Any caller; caller becomes sponsor | none; payable | malformed/empty fields, duplicate IDs, deadline not future, value != 2 GEN | `deadline > now`; equality rejected | New `R-n` only; no retry with same ID | Receives exactly 2 GEN; purse total/remaining = 2 GEN | round list, round view, sponsor activity | wrong value, duplicate source, stale deadline, malformed scopes, non-payable call | `tests/direct/test_repligrant_direct.py` |
+| `submit_replication(round_id, pmcid, doi)` | Any connected contributor | `OPEN`, `now < deadline`, empty slot | closed/reviewing, late/equal deadline, duplicate PMCID/DOI, invalid source ID | `now < deadline`; equality rejected in this method | One submission ID per empty bounded slot | No value; records contributor | round view, submission view | unauthorized impossible caller, late/equal, duplicate, third slot, wrong round | `tests/direct/test_repligrant_direct.py` |
+| `review_submission(submission_id)` | Any connected non-zero account | `SUBMITTED` or `RETRYABLE`, `now < deadline` | terminal, wrong round state, late/equal, invalid source/auth fields | `now < deadline`; equality rejected | Attempt increments; terminal result cannot repeat | No value on all result/error paths | submission, round claim status, optional 1 GEN credit | source 404, missing PMCID/DOI binding, prompt injection, malformed verdict, disagreement | `tests/direct/test_repligrant_direct.py` |
+| `expire_submission(submission_id)` | Stored round sponsor or stored submission contributor | `SUBMITTED` or `RETRYABLE` at/after deadline | unrelated caller, qualified/not-comparable/expired status, before deadline, closed round | `now >= deadline`; equality allowed | Marks `EXPIRED` once and releases exactly its active slot; repeat rejects | No value; purse, claim status, qualified count, and credits unchanged | submission, round slots, activity | wrong caller, boundary-1/equality/+1, duplicate, accounting unchanged, sponsor close after recovery | `tests/direct/test_repligrant_direct.py` |
+| `close_round(round_id)` | Stored sponsor only | `OPEN`/`REVIEWING` after deadline, or deterministic complete path | non-sponsor, before/equal? equality is allowed here (`now >= deadline`), active slot, already closed | `now >= deadline`; stale phase does not bypass active-slot check | Terminal close rejects; no duplicate refund credit | Remaining purse becomes one sponsor refund credit; round purse becomes zero | round, credit, activity | wrong caller, early/equal/late, active submission, duplicate close, accounting | `tests/direct/test_repligrant_direct.py` |
+| `withdraw_credit(credit_id)` | Stored credit owner | `CLAIMABLE` | wrong owner, zero amount, withdrawn, wrong credit | `N/A` — withdrawal is not deadline-bound; credit remains claimable until withdrawn | Status debited before child transfer; repeat rejected | 1 GEN contributor or remainder transfer; credit amount becomes zero | credit view, account credit view, transfer evidence | wrong owner, duplicate, zero, child transfer failure, balance mismatch | `tests/direct/test_repligrant_direct.py` |
 
 No write method may be implemented while its row has a blank or vague safety
 cell. A genuinely non-temporal method records `N/A` with a reason in
@@ -290,6 +297,7 @@ cell. A genuinely non-temporal method records `N/A` with a reason in
 | `SUBMITTED` | Request validator review | `review_submission` | Review action on detail/activity | `frontend/src/adapter-lifecycle.test.ts` | implemented; retry and finality phases covered |
 | `QUALIFIED` | Inspect finding and credit | deterministic settlement in `review_submission` | status badge, timeline, credit banner | adapter reload path + phase-8 canonical reads | verified on Studionet `QUALIFIED` / 1.00 GEN |
 | `NOT_COMPARABLE` / `RETRYABLE` | Read non-penalizing outcome or retry | `review_submission` retry path | explicit reason and retry control | adapter lifecycle test + direct unavailable-source test | retry path verified; no-value consequence |
+| submission `EXPIRED` | Release pending/retryable slot after deadline | `expire_submission` | role- and deadline-gated recovery control | `frontend/src/recovery.test.ts` + adapter lifecycle test | implemented locally; Studionet redeployment pending |
 | `COMPLETE` / `EXPIRED` | Sponsor closes/recovers remainder | `close_round` | contextual close button | `frontend/src/adapter-lifecycle.test.ts` | implemented; deadline gate and finality handled |
 | `CLAIMABLE` | Withdraw a finalized credit | `withdraw_credit` | account/activity withdraw button | adapter write boundary + canonical reload path | verified on Studionet withdrawal; 0.00 GEN after |
 
@@ -298,9 +306,9 @@ cell. A genuinely non-temporal method records `N/A` with a reason in
 - Authoritative sources: Europe PMC core-search endpoint for the contract-built
   PMCID query; DOI is a required cross-identifier but never a user-hosted URL.
 - Provenance/authentication: the source controller is Europe PMC, not the
-  sponsor or contributor. The contract derives the URL from the PMCID,
-  requires the PMCID and DOI to appear in the fetched record, and checks the
-  record's canonical identifier fields before semantic judgment.
+  sponsor or contributor. The contract derives the URL from the PMCID and
+  requires one result whose canonical `pmcid` and `doi` fields exactly match
+  the locked pair; identifiers embedded elsewhere in raw JSON do not bind it.
 - Authorized attestor/signer: Europe PMC publication metadata is the authority;
   no actor-provided signature is accepted. Missing or contradictory authority
   fields are non-penalizing `RETRYABLE`.
@@ -372,9 +380,10 @@ record allowed by the state machine.
   no caller-supplied URLs or payout labels.
 - Fetch: inside the nondeterministic leader function, fetch both records from
   the literal Europe PMC core-search endpoint with bounded response size.
-- Extraction: verify HTTP success, source PMCID and DOI fields, then extract a
-  bounded title/abstract/method/results representation; never pass unbounded
-  HTML or arbitrary instructions to the model.
+- Extraction: verify HTTP success and exact source PMCID/DOI fields, then parse
+  only `title`, `abstractText`, `pubYear`, `publicationStatus`, and
+  `pubTypeList.pubType`. Each field has an explicit bound; irrelevant raw JSON
+  is excluded rather than prefix-truncated into the model prompt.
 - Normalization: uppercase enum fields, trim whitespace, require exact locked
   scope-ID set coverage, and cap the rationale to a public short reason.
 - Structured output: `{"comparability":"SUFFICIENT|NOT_COMPARABLE",
@@ -387,7 +396,7 @@ record allowed by the state machine.
 | `comparability` | enum; exact two values | leader and independent validator must agree exactly | gates any credit |
 | `finding` | enum; three values | leader and validator agree only after objective source checks | derives claim status |
 | `covered_scope_ids` | sorted, exact locked set | derived by contract/parser, not trusted from prose | prevents missing/extra requirements |
-| `source_bound` | boolean from deterministic checks | must be true in both runs | blocks unauthenticated payout |
+| canonical source fields | exact PMCID/DOI plus bounded review-field object | both runs reconstruct it from Europe PMC; raw-body substring matches are rejected | blocks unauthenticated payout and prefix-truncation loss |
 | `reason` | bounded string | wording may differ and is never used for settlement | user explanation only |
 
 ### Validator
@@ -400,9 +409,9 @@ record allowed by the state machine.
 - Rejection conditions: missing/extra scope, wrong PMCID/DOI, wrong host/path,
   malformed JSON, invalid enum, source unavailable, or leader/validator
   disagreement rejects consensus and maps to non-penalizing `RETRYABLE`.
-- `UNDETERMINED` handling: model uncertainty returns `UNRESOLVED` only when
-  source binding and scope coverage are valid; source/model/parser failure is
-  `RETRYABLE` and never creates a credit.
+- `UNDETERMINED` handling: model uncertainty normalizes to `UNRESOLVED`, which
+  deterministically maps to `RETRYABLE`; source/model/parser failure is also
+  `RETRYABLE`. Neither path creates credit or changes claim/purse state.
 
 ### Rationale policy
 
@@ -416,8 +425,8 @@ record allowed by the state machine.
 | --- | --- | --- | --- |
 | `SUFFICIENT + CORROBORATES` | submission `QUALIFIED`; claim `SUPPORTED`; round remains `OPEN` unless second slot fills; create one 1 GEN contributor credit | Contributor can withdraw after finality; consumers see accepted source | Decrement purse by 1 GEN; create claimable credit |
 | `SUFFICIENT + CHALLENGES` | submission `QUALIFIED`; claim `CHALLENGED` or `MIXED`; same slot/credit rule | Contributor can withdraw; consumers inspect finding | Decrement purse by 1 GEN; create claimable credit |
-| `SUFFICIENT + UNRESOLVED` | submission `QUALIFIED`; claim becomes `MIXED` only if another accepted finding conflicts; credit still follows qualification | Contributor sees unresolved accepted evidence | Decrement purse by 1 GEN |
-| `NOT_COMPARABLE` | submission `NOT_COMPARABLE`; claim/purse unchanged | No credit; contributor can submit elsewhere | No movement |
+| `SUFFICIENT + UNRESOLVED` | submission `RETRYABLE`; claim, purse, qualified count, and slots remain unchanged until retry or post-deadline expiry | Retry before deadline; expire after deadline | No movement |
+| `NOT_COMPARABLE` | submission `NOT_COMPARABLE`; claim/purse unchanged; its unbonded slot is released while history remains readable | No credit; another contributor may use the released slot | No movement |
 | source/parser/model failure | submission `RETRYABLE`; round returns `OPEN` | Retry before deadline | No movement |
 
 - Accepted/finalized boundary: only after the nondeterministic write finalizes
@@ -481,7 +490,7 @@ record allowed by the state machine.
 ## Test plan
 
 - Happy path: 2 GEN open -> unique submission -> objective source gate ->
-  corroborates/challenges/unresolved -> 1 GEN claimable credit -> withdrawal.
+  corroborates/challenges -> 1 GEN claimable credit -> withdrawal.
 - Unauthorized: sponsor-only close, owner-only withdrawal, invalid caller state.
 - Isolation: two rounds and two submissions cannot share fields, slots, purse,
   claim status, or credit IDs.
@@ -494,16 +503,18 @@ record allowed by the state machine.
   deterministic policy wins.
 - Semantic mismatch: independent validator disagrees on comparability/finding;
   no hard state or value change.
-- Verdict classes: corroborates, challenges, unresolved, not comparable,
-  retryable, and mixed claim aggregation.
+- Verdict classes: corroborates and challenges qualify; unresolved is
+  non-paying/non-mutating retryable; not-comparable releases its unbonded slot;
+  retryable, expiry recovery, and mixed claim aggregation are covered.
 - Duplicate: duplicate PMCID/DOI, repeated review, repeated close, repeated
   withdrawal, and repeated transfer receipt.
 - Recovery/value write safety: boundary-1, exact-boundary, boundary+1 for every
   time-bounded write, stale phase, active review close, and retry.
 - Accounting/value: exact 2 GEN receive, two 1 GEN maximum credits, refund of
   remainder, debit-before-transfer, and zero orphaned purse.
-- Cure/restore: retryable review before deadline; broken revision replacement
-  retains explicit abandoned status and no further funding.
+- Cure/restore: retryable review before deadline; pending/retryable expiry at or
+  after deadline releases the slot and enables sponsor refund; broken revision
+  replacement retains explicit abandoned status and no further funding.
 - Consumer enforcement: N/A in v1; no pass-through consumer contract.
 - Undetermined/retry: source/model/parser errors are non-penalizing and retryable.
 
@@ -515,7 +526,7 @@ record allowed by the state machine.
 | “Validators decide meaning” | `review_submission` nondet -> finalized result | `get_submission` verdict/reason/status | independent meaning/malicious leader tests | finalized review + explorer |
 | “Evidence is authoritative” | source gate before settlement | submission source IDs and status | wrong-host/wrong-ID provenance tripwire | sanitized evidence record |
 | “Only qualifying evidence earns credit” | qualified result creates one credit | `get_credit` / account credits | not-comparable/retry accounting tests | credit + balance proof |
-| “No orphaned GEN” | close/refund and pull withdrawal | round purse + credit views | ledger invariant and duplicate withdrawal tests | receipt and balance delta |
+| “No orphaned GEN” | post-deadline submission expiry, close/refund, and pull withdrawal | submission status + round purse + credit views | expiry recovery, ledger invariant, and duplicate withdrawal tests | prior receipt/balance delta; revised contract redeployment pending |
 | “Full Projects lifecycle” | wallet wrappers for every write | canonical reload after finality | frontend lifecycle tests | browser + Studionet evidence |
 
 No important claim may have a blank cell.

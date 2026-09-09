@@ -43,6 +43,7 @@ $from = [regex]::Match($receiptOutput, "from_address:\s*'([^']+)'").Groups[1].Va
 if ($status -ne "FINALIZED" -or $execution -ne "SUCCESS") { throw "Deployment finalized without successful execution." }
 
 $sourceHash = (Get-FileHash -LiteralPath $contractPath -Algorithm SHA256).Hash.ToLower()
+$sourceCommit = (& git -C $projectRoot rev-parse HEAD).Trim()
 $record = [ordered]@{
   active = $true
   network = "studionet"
@@ -55,6 +56,7 @@ $record = [ordered]@{
   result_name = $resultName
   execution_result = $execution
   source_sha256 = $sourceHash
+  source_commit = $sourceCommit
   depends = "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6"
   rpc = "https://studio.genlayer.com/api"
   explorer = "https://genlayer-explorer.vercel.app"

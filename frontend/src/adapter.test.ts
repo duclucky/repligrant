@@ -21,6 +21,7 @@ describe("contract adapter safety boundary", () => {
       deadline: 1_900_000_000,
     }, noOp)).rejects.toBeInstanceOf(WalletNotConfiguredError);
     await expect(contractAdapter.submitReplication({ roundId: "ROUND-1", pmcid: "PMC2", doi: "10.1/replication" }, noOp)).rejects.toBeInstanceOf(WalletNotConfiguredError);
+    await expect(contractAdapter.expireSubmission("S-1", noOp)).rejects.toBeInstanceOf(WalletNotConfiguredError);
     await expect(contractAdapter.withdrawCredit("C-1", noOp)).rejects.toBeInstanceOf(WalletNotConfiguredError);
   });
 });
