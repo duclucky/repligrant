@@ -15,9 +15,17 @@ describe("wallet display", () => {
 
   it("requests a Studionet switch when a connected wallet is on another chain", async () => {
     const requests: Array<{ method: string; params?: unknown[] | object }> = [];
-    const provider = { request: async (request: { method: string; params?: unknown[] | object }) => { requests.push(request); return null; } };
+    const provider = { request: async (request: { method: string; params?: unknown[] | object }) => { requests.push(request); return request.method === "eth_chainId" ? STUDIONET.chainId : null; } };
     await ensureStudionet(provider);
-    expect(requests).toEqual([{ method: "wallet_switchEthereumChain", params: [{ chainId: STUDIONET.chainId }] }]);
+    expect(requests).toEqual([
+      { method: "wallet_switchEthereumChain", params: [{ chainId: STUDIONET.chainId }] },
+      { method: "eth_chainId" },
+    ]);
+  });
+
+  it("stops before signing when the provider remains on another chain", async () => {
+    const provider = { request: async (request: { method: string; params?: unknown[] | object }) => request.method === "eth_chainId" ? "0x1" : null };
+    await expect(ensureStudionet(provider)).rejects.toThrow(/still on chain/);
   });
 
   it("persists a selected provider identity without persisting a private key", () => {

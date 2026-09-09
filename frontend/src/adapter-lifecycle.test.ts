@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createClient } from "genlayer-js";
 import { createContractAdapter } from "./adapter";
+import { STUDIONET } from "./wallet";
 
 const account = "0x1111111111111111111111111111111111111111" as const;
 const address = "0x2222222222222222222222222222222222222222" as const;
@@ -15,7 +16,7 @@ describe("frontend lifecycle wrappers", () => {
     const adapter = createContractAdapter({
       contractAddress: address,
       clientFactory: fakeClientFactory,
-      sessionGetter: () => ({ account, provider: { request: vi.fn() } }),
+      sessionGetter: () => ({ account, provider: { request: vi.fn(async ({ method }: { method: string }) => method === "eth_chainId" ? STUDIONET.chainId : null) } }),
     });
     const phases: string[] = [];
     await adapter.reviewSubmission("S-1", (state) => phases.push(state.phase));

@@ -166,6 +166,10 @@ export async function ensureStudionet(provider: Eip1193Provider): Promise<void> 
       params: [STUDIONET],
     });
   }
+  const activeChainId = await provider.request({ method: "eth_chainId" });
+  if (String(activeChainId).toLowerCase() !== STUDIONET.chainId.toLowerCase()) {
+    throw new Error(`Wallet is still on chain ${String(activeChainId)}; switch to GenLayer Studionet (${studionet.id}) before signing.`);
+  }
 }
 
 export function WalletProvider({ children }: PropsWithChildren) {
