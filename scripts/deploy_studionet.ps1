@@ -1,4 +1,5 @@
 $ErrorActionPreference = "Stop"
+$genlayerCli = (Get-Command genlayer.cmd -ErrorAction Stop).Source
 $projectRoot = Resolve-Path "$PSScriptRoot\.."
 $deploymentPath = Join-Path $projectRoot "deployment.json"
 $contractPath = Join-Path $projectRoot "contracts\repligrant.py"
@@ -24,17 +25,23 @@ if (Test-Path $deploymentPath) {
     $archiveDir = Join-Path $projectRoot "docs\evidence\studionet\deployments"
     New-Item -ItemType Directory -Force $archiveDir | Out-Null
     $archivePath = Join-Path $archiveDir ("superseded-" + $existing.contract_address + ".json")
+    $existing | Add-Member -NotePropertyName active -NotePropertyValue $false -Force
+    $existing | Add-Member -NotePropertyName revision_status -NotePropertyValue "ABANDONED" -Force
+    $existing | Add-Member -NotePropertyName archive_reason -NotePropertyValue "Superseded after reviewer feedback exposed a post-deadline recovery deadlock and settlement/parser defects." -Force
+    $existing | Add-Member -NotePropertyName recovery_status -NotePropertyValue "Broken-contract replacement exception: no further value will be sent; remaining accounting may be non-zero." -Force
+    $existing | Add-Member -NotePropertyName superseded_by_source_sha256 -NotePropertyValue $currentHash -Force
+    $existing | Add-Member -NotePropertyName archived_at -NotePropertyValue ([DateTime]::UtcNow.ToString("o")) -Force
     $existing | ConvertTo-Json | Set-Content -LiteralPath $archivePath -Encoding utf8
   }
 }
 
-$deployOutput = (& genlayer deploy --contract $contractPath 2>&1 | Out-String)
+$deployOutput = (& $genlayerCli deploy --contract $contractPath 2>&1 | Out-String)
 if ($LASTEXITCODE -ne 0) { throw "genlayer deploy failed." }
 $tx = [regex]::Match($deployOutput, "Deployment Transaction Hash:\s*\r?\n([^\s]+)").Groups[1].Value
 $address = [regex]::Match($deployOutput, "Contract Address:\s*'?(0x[a-fA-F0-9]{40})'?").Groups[1].Value
 if (-not $tx -or -not $address) { throw "Deployment output did not contain a safe transaction/address pair." }
 
-$receiptOutput = (& genlayer receipt $tx --status FINALIZED --retries 50 --interval 3000 2>&1 | Out-String)
+$receiptOutput = (& $genlayerCli receipt $tx --status FINALIZED --retries 50 --interval 3000 2>&1 | Out-String)
 if ($LASTEXITCODE -ne 0) { throw "deployment receipt did not finalize." }
 $status = [regex]::Match($receiptOutput, "status_name:\s*'([^']+)'").Groups[1].Value
 $resultName = [regex]::Match($receiptOutput, "result_name:\s*'([^']+)'").Groups[1].Value
