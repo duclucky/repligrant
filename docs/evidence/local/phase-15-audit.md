@@ -1,7 +1,10 @@
 # Phase 15 audit evidence
 
-This file records the final local and live checks for the Projects track. Secrets,
-raw receipts, validator configuration, and private RPC payloads are not included.
+Updated: 2026-09-10
+
+This file records allowlisted local and live checks for the Projects track. It
+does not contain secrets, full receipts, validator configuration, or private RPC
+payloads.
 
 ## Acceptance precheck
 
@@ -10,19 +13,10 @@ Command: `npm run precheck`
 ```text
 Project repligrant -Category projects
 NO BLOCKER
-OK contract source
-OK direct tests
-OK frontend product shell
-OK frontend contract adapter
-OK active Studionet deployment evidence
-OK Studionet lifecycle evidence
-OK browser/proxy evidence
-OK public CI evidence
-OK active contract 0x5dc18F7Ab1Ffd5CDA4D08663E86cBF0E0Efc1c48
-OK frontend has a configured deployed contract address
-OK public GitHub remote
-OK README has verified live app and active contract
-WARN: browser wallet writes remain user-signature dependent; wrappers, controls, finality handling, canonical reload, and SDK boundary tests are present.
+OK active contract 0xbc46481EB633363C45E4Cd3934d2e85cF0385E17
+OK active deployment matches current contract source
+OK active revision has browser-signed 2 GEN funding, pending-submission expiry,
+slot release, sponsor refund, withdrawal, and canonical reload evidence
 ```
 
 ## Required repository check
@@ -33,38 +27,47 @@ Command: `npm run check`
 Lint passed (3 checks)
 Validation passed
   Contract: RepliGrant
-  Methods: 12 (7 view, 5 write)
-11 passed in 0.53s
-Test Files 4 passed (4)
-Tests 5 passed (5)
-CHECK_PASS: lint, direct tests, frontend typecheck/tests/build
+  Methods: 13 (7 view, 6 write)
+17 passed
+browser RPC proxy tests: 4 passed
+Test Files 8 passed (8)
+Tests 17 passed (17)
+vite: 2304 modules transformed; built successfully
+CHECK_PASS: lint, direct tests, browser RPC proxy tests, frontend typecheck/tests/build
 ```
 
-## Live app exit gate
+## Reviewer invariants
 
-Commands: `curl.exe -I https://repligrant.vercel.app` and
-`curl.exe -s https://repligrant.vercel.app/rounds`.
+1. Post-deadline recovery: `expire_submission` moves a still-pending or
+   retryable submission to `EXPIRED` after the locked deadline.
+2. Non-paying unresolved result: `UNRESOLVED` creates no contributor credit,
+   debits no purse, and changes no claim state.
+3. Exact Europe PMC parsing: review input contains only the locked identifiers
+   plus `pmcid`, `doi`, `title`, `abstractText`, `pubYear`,
+   `publicationStatus`, and `pubTypeList.pubType`; it does not truncate raw JSON.
+4. Slot recovery: terminal unbonded `NOT_COMPARABLE` and `EXPIRED` submissions
+   release their active slot while preserving append-only submission history.
 
-Observed: HTTP `200 OK`; the response contains
-`<title>RepliGrant | Fund evidence that holds up</title>` and `<div id="root"></div>`.
-Chrome verification of `/rounds/R-1` read canonical `OPEN R-1`, submission
-`PMC13367721 ... QUALIFIED`, then after the finalized browser write also read
-`PMC13267231 ... SUBMITTED`, `Remaining slots 0`, and no browser console
-errors/warnings. The same-origin `/genlayer-rpc` path is used by the deployed app.
+Direct tests cover each invariant, including exact deadline boundaries, wrong
+caller/state, duplicate expiry, accounting preservation, malformed evidence,
+malicious validator output, and slot reuse.
 
-Browser write proof is recorded in `docs/evidence/local/phase-9-browser-write.md`.
-Browser payment proof is recorded in `docs/evidence/local/phase-9-browser-payment.md`.
-After the production redeploy, the browser reloaded `/activity` and restored
-the selected OKX account; canonical Activity showed `C-2 WITHDRAWN` and
-`CLAIMABLE CREDIT 0.00 GEN`.
+## Live browser and Studionet proof
 
-## Public and network evidence
+The production Chrome workflow used the selected OKX account on Studionet and
+completed R-2: open with 2 GEN, submit S-1, expire S-1 after the deadline,
+restore both slots with the claim still `UNTESTED`, close/refund 2 GEN, and
+withdraw C-2 to `0.00 GEN WITHDRAWN`. Exact allowlisted transaction hashes and
+canonical reads are in
+`docs/evidence/studionet/reviewer-feedback-live.md`.
 
-- Public repository: `https://github.com/duclucky/repligrant`
-- CI workflow: `https://github.com/duclucky/repligrant/actions/workflows/check.yml`
-- Live app: `https://repligrant.vercel.app`
-- Active Studionet contract: `0x5dc18F7Ab1Ffd5CDA4D08663E86cBF0E0Efc1c48`
-- Lifecycle evidence: `docs/evidence/studionet/phase-8-lifecycle.md`
-- Portal Builders: authenticated submission flow opened at
-  `https://portal.genlayer.foundation/submit-contribution`; final send was not
-  clicked, so no Portal submission or acceptance is claimed.
+Production: `https://repligrant.vercel.app`
+
+Active Studionet contract:
+`0xbc46481EB633363C45E4Cd3934d2e85cF0385E17`
+
+Repository: `https://github.com/duclucky/repligrant`
+
+CI workflow: `https://github.com/duclucky/repligrant/actions/workflows/check.yml`
+
+Portal approval is external and is not claimed.

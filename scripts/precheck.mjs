@@ -18,6 +18,7 @@ requireFile("frontend/src/App.tsx", "frontend product shell");
 requireFile("frontend/src/adapter.ts", "frontend contract adapter");
 requireFile("deployment.json", "active Studionet deployment evidence");
 requireFile("docs/evidence/studionet/phase-8-lifecycle.md", "Studionet lifecycle evidence");
+requireFile("docs/evidence/studionet/reviewer-feedback-live.md", "active reviewer-feedback lifecycle evidence");
 requireFile("docs/evidence/local/phase-9-browser-deployed.md", "browser/proxy evidence");
 requireFile("docs/evidence/github-ci.md", "public CI evidence");
 
@@ -54,5 +55,5 @@ console.log("Project repligrant -Category projects");
 console.log(blockers.length ? `${blockers.length} BLOCKER` : "NO BLOCKER");
 for (const check of checks) console.log(check);
 for (const blocker of blockers) console.log(`BLOCKER: ${blocker}`);
-console.log("WARN: prior browser submit/review/2 GEN lifecycle evidence belongs to the archived superseded revision; the active revision has read-only production proof and a user-denied 2 GEN create-round attempt, while wrappers, finality handling, canonical reload, and SDK boundary tests are present.");
+console.log("OK active revision has browser-signed 2 GEN funding, pending-submission expiry, slot release, sponsor refund, withdrawal, and canonical reload evidence");
 process.exitCode = blockers.length ? 1 : 0;

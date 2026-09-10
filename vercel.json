@@ -4,8 +4,8 @@
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
-      "source": "/genlayer-rpc/:path*",
-      "destination": "https://studio.genlayer.com/api/:path*"
+      "source": "/genlayer-rpc",
+      "destination": "/api/genlayer-rpc"
     },
     {
       "source": "/(.*)",

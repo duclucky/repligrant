@@ -184,6 +184,11 @@ export function WalletProvider({ children }: PropsWithChildren) {
     const discovered = new Map<string, DetectedWallet>();
     const addWallet = (wallet: DetectedWallet) => {
       const key = wallet.info.uuid || wallet.info.rdns || wallet.info.name;
+      for (const [existingKey, existingWallet] of discovered) {
+        const sameProvider = existingWallet.provider === wallet.provider;
+        const sameRdns = Boolean(wallet.info.rdns && existingWallet.info.rdns === wallet.info.rdns);
+        if (existingKey !== key && (sameProvider || sameRdns)) discovered.delete(existingKey);
+      }
       discovered.set(key, wallet);
       setWallets([...discovered.values()]);
     };
@@ -244,7 +249,11 @@ export function WalletProvider({ children }: PropsWithChildren) {
   const connect = useCallback(async (wallet: DetectedWallet) => {
     setError(null);
     try {
-      const accounts = await wallet.provider.request({ method: "eth_requestAccounts" });
+      let accounts: unknown;
+      try { accounts = await wallet.provider.request({ method: "eth_accounts" }); } catch { accounts = null; }
+      if (!Array.isArray(accounts) || !isAddress(accounts[0])) {
+        accounts = await wallet.provider.request({ method: "eth_requestAccounts" });
+      }
       if (!Array.isArray(accounts) || !isAddress(accounts[0])) {
         throw new Error("The selected wallet did not return a valid account address.");
       }

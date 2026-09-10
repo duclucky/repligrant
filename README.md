@@ -20,7 +20,7 @@ npm install --prefix frontend
 npm run check
 ```
 
-`npm run check` runs `genvm-lint`, 17 direct-mode tests, frontend TypeScript, 9 frontend tests, and the production build. The selected runner is pinned to `GENVM_VERSION=v0.2.16` for the verified contract/API family.
+`npm run check` runs `genvm-lint`, 17 direct-mode tests, 4 browser-RPC proxy tests, frontend TypeScript, 17 frontend tests, and the production build. The selected runner is pinned to `GENVM_VERSION=v0.2.16` for the verified contract/API family.
 
 ## Studionet deployment
 
@@ -30,7 +30,7 @@ The active deployment is recorded in [`deployment.json`](deployment.json):
 - Contract: `0xbc46481EB633363C45E4Cd3934d2e85cF0385E17`
 - Explorer: [Studionet contract](https://explorer-studio.genlayer.com/address/0xbc46481EB633363C45E4Cd3934d2e85cF0385E17)
 - Deployment transaction: [`0x6a695c...783e5`](https://explorer-studio.genlayer.com/tx/0x6a695ce99d080a9ce07eb4ebf5acbd5277f40b5b26617136c20f60fcfb5783e5)
-- Lifecycle evidence: [`docs/evidence/studionet/phase-8-lifecycle.md`](docs/evidence/studionet/phase-8-lifecycle.md)
+- Reviewer-recovery lifecycle: [`docs/evidence/studionet/reviewer-feedback-live.md`](docs/evidence/studionet/reviewer-feedback-live.md)
 - Production frontend: [repligrant.vercel.app](https://repligrant.vercel.app)
 - CI workflow: [RepliGrant check](https://github.com/duclucky/repligrant/actions/workflows/check.yml)
 

@@ -29,4 +29,44 @@ describe("frontend lifecycle wrappers", () => {
       "AWAITING_SIGNATURE", "SUBMITTED", "ACCEPTED", "FINALIZED",
     ]);
   });
+
+  it("surfaces a finalized GenVM error from the snake_case consensus receipt", async () => {
+    const fakeClientFactory = (() => ({
+      writeContract: vi.fn(async () => "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+      waitForTransactionReceipt: vi.fn(async () => ({
+        result_name: "MAJORITY_AGREE",
+        status_name: "FINALIZED",
+        consensus_data: { leader_receipt: [{ execution_result: "ERROR" }] },
+      })),
+    })) as unknown as typeof createClient;
+    const adapter = createContractAdapter({
+      contractAddress: address,
+      clientFactory: fakeClientFactory,
+      sessionGetter: () => ({ account, provider: { request: vi.fn(async ({ method }: { method: string }) => method === "eth_chainId" ? STUDIONET.chainId : null) } }),
+    });
+    await expect(adapter.reviewSubmission("S-1", () => undefined)).rejects.toThrow("contract execution error");
+  });
+
+  it("does not turn quorum-stop validator sentinels into a failed transaction", async () => {
+    const fakeClientFactory = (() => ({
+      writeContract: vi.fn(async () => "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+      waitForTransactionReceipt: vi.fn(async () => ({
+        result_name: "MAJORITY_AGREE",
+        status_name: "FINALIZED",
+        consensus_data: {
+          leader_receipt: [{ execution_result: "SUCCESS" }],
+          validators: [
+            { execution_result: "ERROR", genvm_result: { error_code: "CONSENSUS_VALIDATOR_QUORUM_REACHED" } },
+            { execution_result: "SUCCESS" },
+          ],
+        },
+      })),
+    })) as unknown as typeof createClient;
+    const adapter = createContractAdapter({
+      contractAddress: address,
+      clientFactory: fakeClientFactory,
+      sessionGetter: () => ({ account, provider: { request: vi.fn(async ({ method }: { method: string }) => method === "eth_chainId" ? STUDIONET.chainId : null) } }),
+    });
+    await expect(adapter.closeRound("R-1", () => undefined)).resolves.toBeUndefined();
+  });
 });

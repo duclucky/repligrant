@@ -60,11 +60,30 @@ function toRound(value: unknown): RoundDetail {
   return { id: text(item.id), title: text(item.title), claim: text(item.claim), sponsor: text(item.sponsor), originalPmcid: text(item.original_pmcid), originalDoi: text(item.original_doi), scopeIds: list(item.scope_ids).map((scope) => text(scope)).filter(Boolean), deadline: numberValue(item.deadline), status: text(item.status, "OPEN") as RoundStatus, claimStatus: text(item.claim_status, "UNTESTED") as ClaimStatus, remainingSlots: numberValue(item.remaining_slots), remainingPurseGen: text(item.remaining_purse_gen, "0.00"), submissions: list(item.submissions).map(toSubmission) };
 }
 
+function hasFailureMarker(value: unknown): boolean {
+  const marker = typeof value === "string" ? value.toUpperCase() : "";
+  return marker.includes("ERROR") || marker.includes("FAILURE") || marker.includes("REVERT");
+}
+
+function isBenignQuorumStop(entry: Record<string, unknown>): boolean {
+  const genvm = entry.genvm_result;
+  if (!genvm || typeof genvm !== "object" || Array.isArray(genvm)) return false;
+  return String((genvm as Record<string, unknown>).error_code ?? "").toUpperCase() === "CONSENSUS_VALIDATOR_QUORUM_REACHED";
+}
+
 function isFailedReceipt(receipt: unknown): boolean {
   const item = asRecord(receipt);
-  const execution = text(item.txExecutionResultName).toUpperCase();
-  const result = text(item.resultName).toUpperCase();
-  return execution.includes("ERROR") || execution.includes("FAILURE") || result.includes("FAILURE");
+  if ([item.txExecutionResultName, item.executionResultName, item.tx_execution_result_name, item.execution_result, item.tx_execution_result].some(hasFailureMarker)) return true;
+  const consensus = item.consensus_data;
+  if (!consensus || typeof consensus !== "object" || Array.isArray(consensus)) return hasFailureMarker(item.resultName) || hasFailureMarker(item.result_name);
+  const data = consensus as Record<string, unknown>;
+  const receipts = [...list(data.leader_receipt), ...list(data.validators)];
+  return receipts.some((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return false;
+    const nested = entry as Record<string, unknown>;
+    if (isBenignQuorumStop(nested)) return false;
+    return hasFailureMarker(nested.execution_result) || hasFailureMarker(nested.txExecutionResultName) || hasFailureMarker(nested.executionResultName);
+  });
 }
 
 async function writeTransaction(method: string, args: Array<string | number>, value: bigint, onPhase: (state: TransactionState) => void, options: AdapterOptions): Promise<string> {

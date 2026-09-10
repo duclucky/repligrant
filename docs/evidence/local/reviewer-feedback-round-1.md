@@ -70,7 +70,7 @@ Contract: RepliGrant
 Methods: 13 (7 view, 6 write)
 17 passed
 Test Files 5 passed (5)
-Tests 11 passed (11)
+Tests 17 passed (17)
 vite build: 2304 modules transformed; built successfully
 CHECK_PASS: lint, direct tests, frontend typecheck/tests/build
 ```
@@ -101,3 +101,16 @@ write. `ensureStudionet` now runs immediately before every write, using the
 current `genlayer-js/chains.studionet.id` (`61999`, `0xf22f`). A focused test
 proves the switch request is made; the user-denied 2 GEN attempt left
 `list_rounds=[]` and spent no value.
+
+The browser also exercised a late submit attempt. Explorer/SDK receipt evidence
+showed `FINALIZED` with leader/validator `execution_result=ERROR` and rollback
+payload `submission deadline passed`; the adapter now inspects the
+snake_case consensus receipt and surfaces `Failed` instead of falsely claiming
+success.
+
+A successful browser submission then exposed a separate same-route refresh
+bug: finality was reported, but navigating from `/rounds/R-2` to that same URL
+did not remount the page. The new component regression test first failed with
+`getRound` called once instead of twice. The submit handler now awaits the
+canonical reload directly and collapses the form only after that read succeeds;
+the focused regression and the full 17-test frontend suite pass.

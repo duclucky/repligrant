@@ -583,7 +583,7 @@ No important claim may have a blank cell.
 - [x] Full lifecycle/failure/retry — submit/review/retry/close/withdraw controls, phases, and live retry-to-qualified evidence.
 - [x] Canonical reads — all product views read contract methods; current production route shows the new contract's live empty state.
 - [x] Meaningful user outcome — finalized `QUALIFIED` opened 1.00 GEN, then withdrawal reached 0.00 GEN.
-- [x] Browser evidence — wallet picker, per-write chain preflight to `61999`, same-origin IC proxy, production app, and empty console verified in Chrome; user-denied recovery funding remains explicitly unclaimed.
+- [x] Browser evidence — wallet picker, per-write chain preflight to `61999`, bounded same-origin IC proxy, production app, and the active R-2 funding/expiry/refund/withdraw lifecycle verified in Chrome.
 - [x] Every claimed browser lifecycle action has frontend wrapper/control/test/finality/canonical reload.
 - [x] Primary UI contains only user-relevant data/actions; system/reviewer
       details are contextual or hidden.
